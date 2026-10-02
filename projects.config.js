@@ -38,10 +38,10 @@ module.exports = {
 
   projects: [
     {
-      slug: "loyiha-1",
-      short: "Loyiha 1",
+      slug: "nexus-school",
+      short: "Nexus School",
       niche: "O'quv markazi",
-      name: "Loyiha 1 · O'quv markazi",
+      name: "Nexus School · O'quv markazi",
       env: "P1", // META_TOKEN_P1, META_ACCOUNT_P1, AMO_SUBDOMAIN_P1, AMO_TOKEN_P1
       thresholds: { cpl: 50000, qcpl: 75000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 30, reply: 60, roas: 2, noAns: 0.3 },
       // Kunlik lid rejasi: dushanba-shanba va yakshanba. Alohida kunlar uchun: overrides: { "2026-10-20": 10 }
