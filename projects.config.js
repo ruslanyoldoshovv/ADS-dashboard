@@ -11,7 +11,7 @@
 const STAGES = {
   contacted: [],                              // ixtiyoriy: "Aloqaga chiqildi" bosqichi (SOTUV voronkasida bo'lsa yozing)
   info: ["Ma'lumot berildi"],                 // sifatli lid boshlanishi (SOTUV voronkasidagi bosqich)
-  offer: ["Taklif qilindi"],
+  offer: ["Taklif qilindi", "TAklif qilndi"],   // SOTUV voronkasida "TAklif qilndi" deb yozilgan, ikkalasi ham hisoblanadi
   // "Suhbatga keldi": alohida VORONKA. Lid shu voronkaga o'tgan bo'lsa, mijoz markazga kelgan hisoblanadi.
   visit: [],
   visitPipelines: ["Suhbatga keldi"],
@@ -49,6 +49,17 @@ module.exports = {
       env: "P1", // META_TOKEN_P1, META_ACCOUNT_P1, AMO_SUBDOMAIN_P1, AMO_TOKEN_P1
       // Reklama sarfi valyutasi: "USD" (dollar) yoki "UZS" (so'm). Tushum (amoCRM bitim summasi) doim so'mda.
       currency: "USD",
+      // Lid qaysi reklamadan kelganini aniqlash usuli.
+      // by: "fields" = lid (yoki unga bog'langan kompaniya) maydonidagi reklama nomi bo'yicha. by: "tags" = teg bo'yicha.
+      // Quyida amoCRM'dagi maydon nomlari yoziladi (lid va kompaniyadagi nomlar).
+      source: {
+        by: "fields",
+        ad: ["ad name", "AD NAME"],
+        adset: ["Ad set name", "AD SET NAME"],
+        campaign: ["Compaign name", "COMPAIGN NAME"]
+      },
+      // Hisobga olinmaydigan voronkalar (masalan: ["Eski lidlar", "Fermer"]). Bo'sh bo'lsa hammasi hisoblanadi.
+      ignorePipelines: [],
       // cpl: Meta CPL chegarasi ($). qcpl: sifatli lid narxi chegarasi ($).
       // quality: sifatli ulush shundan past bo'lsa qizil. qualityWarn: shundan past bo'lsa sariq ("chegaraga yaqin").
       // roas: null = ROAS chegarasi yo'q, faqat ko'rsatiladi. Chegara kerak bo'lsa son yozing, masalan roas: 2
