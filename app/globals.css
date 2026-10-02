@@ -19,3 +19,22 @@ a { color: inherit; text-decoration: none; }
 .tbl.head { background: #F3F5F7; color: #566573; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; padding: 10px 24px; border-top: 0; }
 .tbl .sticky { position: sticky; left: 0; background: inherit; }
 .r { text-align: right; }
+
+/* Sana va oylik reja tugmalari: bosilganda ochiladigan oyna */
+.pop { position: relative; }
+.pop > summary, .fold > summary { list-style: none; cursor: pointer; }
+.pop > summary::-webkit-details-marker, .fold > summary::-webkit-details-marker { display: none; }
+.popbtn { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; padding: 8px 16px; border-radius: 14px; border: 1px solid #E2E8EE; background: #FFFFFF; }
+.pop[open] > .popbtn { border-color: #14212B; }
+.poppanel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: min(340px, 92vw); background: #FFFFFF; border: 1px solid #E2E8EE; border-radius: 16px; padding: 16px; box-shadow: 0 12px 32px rgba(20, 33, 43, 0.14); display: flex; flex-direction: column; gap: 12px; }
+.chip { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #F3F5F7; font-weight: 600; font-size: 14px; }
+.chip[aria-current="true"] { background: #14212B; color: #FFFFFF; }
+.field { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #C8D3DC; background: #FFFFFF; color: #14212B; font: inherit; font-size: 15px; width: 100%; }
+.btn { min-height: 44px; padding: 0 20px; border-radius: 10px; border: 0; background: #14212B; color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer; }
+.btn:disabled { background: #C8D3DC; cursor: not-allowed; }
+/* Yig'iladigan blok (ogohlantirishlar) */
+.fold { display: block; }
+.fold > summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.fold .foldhint::after { content: "ko'rish uchun bosing ▾"; }
+.fold[open] .foldhint::after { content: "yopish ▴"; }
+@media (max-width: 720px) { .pop { width: 100%; } .poppanel { position: static; width: 100%; margin-top: 8px; box-shadow: none; } }
