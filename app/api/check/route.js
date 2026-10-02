@@ -1,7 +1,8 @@
 // Ulanishni tekshirish: /api/check?p=nexus-school  (token ko'rsatilmaydi, faqat OK yoki xato matni)
 import cfg from "../../../projects.config";
 import { pingMeta } from "../../../lib/meta";
-import { pingAmo, fetchPipelines } from "../../../lib/amo";
+import { pingAmo, fetchPipelines, fetchCustomFields, fetchPipelineStages } from "../../../lib/amo";
+import { projectEnv } from "../../../lib/env";
 import { missingStages } from "../../../lib/stages";
 import { storeReady } from "../../../lib/store";
 import { getUsdRate } from "../../../lib/rate";
@@ -12,25 +13,30 @@ export async function GET(req) {
   const slug = new URL(req.url).searchParams.get("p") || cfg.projects[0].slug;
   const p = cfg.projects.find((x) => x.slug === slug);
   if (!p) return Response.json({ error: "Bunday loyiha yo'q", mavjud: cfg.projects.map((x) => x.slug) }, { status: 404 });
-  const e = p.env;
-  const env = {
-    META_TOKEN: !!process.env["META_TOKEN_" + e], META_ACCOUNT: !!process.env["META_ACCOUNT_" + e],
-    AMO_SUBDOMAIN: !!process.env["AMO_SUBDOMAIN_" + e], AMO_TOKEN: !!process.env["AMO_TOKEN_" + e]
-  };
+  const c = projectEnv(p);
+  const env = { META_TOKEN: !!c.metaToken, META_ACCOUNT: !!c.metaAccount, AMO_SUBDOMAIN: !!c.amoSub, AMO_TOKEN: !!c.amoToken };
   const want = p.currency === "USD" ? "USD" : "UZS";
   const out = { loyiha: p.name, kiritilgan_o_zgaruvchilar: env, sozlamadagi_valyuta: want, reja_saqlash_joyi_ulangan: storeReady() };
   if (want === "USD") out.dollar_kursi = await getUsdRate(cfg);
   try {
-    out.meta = env.META_TOKEN && env.META_ACCOUNT ? { ok: true, ...(await pingMeta({ token: process.env["META_TOKEN_" + e], account: process.env["META_ACCOUNT_" + e] })) } : { ok: false, sabab: "Token yoki akkaunt ID kiritilmagan" };
+    out.meta = env.META_TOKEN && env.META_ACCOUNT ? { ok: true, ...(await pingMeta({ token: c.metaToken, account: c.metaAccount })) } : { ok: false, sabab: "Token yoki akkaunt ID kiritilmagan" };
   } catch (err) { out.meta = { ok: false, sabab: String(err.message) }; }
   if (out.meta.ok) out.meta.valyuta_mos = out.meta.currency === want;
   try {
     if (env.AMO_SUBDOMAIN && env.AMO_TOKEN) {
-      const sub = process.env["AMO_SUBDOMAIN_" + e], tok = process.env["AMO_TOKEN_" + e];
+      const sub = c.amoSub, tok = c.amoToken;
       const acc = await pingAmo(sub, tok);
       const st = await fetchPipelines(sub, tok);
       const missing = missingStages(st.statuses, cfg.stages);
       out.amocrm = { ok: true, akkaunt: acc.name, voronkalar: st.pipelines, topilmagan_bosqichlar: missing };
+      // Sozlash uchun ma'lumot: bosqich nomlari va qo'shimcha maydon nomlari (qiymatlar emas)
+      const safe = async (fn) => { try { return await fn(); } catch (x) { return "o'qilmadi: " + String(x.message).slice(0, 120); } };
+      out.amocrm.bosqichlar = await safe(() => fetchPipelineStages(sub, tok));
+      out.amocrm.maydonlar = {
+        bitim: await safe(() => fetchCustomFields(sub, tok, "leads")),
+        kontakt: await safe(() => fetchCustomFields(sub, tok, "contacts")),
+        kompaniya: await safe(() => fetchCustomFields(sub, tok, "companies"))
+      };
     } else out.amocrm = { ok: false, sabab: "Subdomen yoki token kiritilmagan" };
   } catch (err) { out.amocrm = { ok: false, sabab: String(err.message) }; }
   return Response.json(out);
