@@ -1,0 +1,70 @@
+// =====================================================================
+// LOYIHALAR SOZLAMASI. Faqat shu faylni o'zgartirasiz.
+// Har loyiha: o'z Business Manager token'i, reklama akkaunti va amoCRM'i.
+// Token va parollar bu yerga YOZILMAYDI, ular Vercel > Environment Variables'da turadi.
+// =====================================================================
+
+// amoCRM bosqich nomlari (voronkangizdagi nom bilan bir xil yozing, katta-kichik harf farq qilmaydi).
+// Yozish usullari:
+//   "Ma'lumot berildi"        -> shu nomli bosqich (istalgan voronkada)
+//   "Suhbatga keldi > Чек"    -> faqat "Suhbatga keldi" voronkasidagi "Чек" bosqichi
+const STAGES = {
+  contacted: [],                              // ixtiyoriy: "Aloqaga chiqildi" bosqichi (SOTUV voronkasida bo'lsa yozing)
+  info: ["Ma'lumot berildi"],                 // sifatli lid boshlanishi (SOTUV voronkasidagi bosqich)
+  offer: ["Taklif qilindi"],
+  // "Suhbatga keldi": alohida VORONKA. Lid shu voronkaga o'tgan bo'lsa, mijoz markazga kelgan hisoblanadi.
+  visit: [],
+  visitPipelines: ["Suhbatga keldi"],
+  // Sotuv: "Suhbatga keldi" voronkasidagi "Чек" bosqichi
+  sale: ["Suhbatga keldi > Чек"]
+};
+
+// Lost sababi nomida shu so'zlar bo'lsa, tegishli guruhga tushadi (kichik harfda yozing)
+const REASON_WORDS = {
+  noAnswer: ["ko'tarmadi", "kotarmadi", "nedozvon", "недозвон", "не взял"],
+  duplicate: ["takror", "dubl", "дубл"]
+};
+
+module.exports = {
+  // amoCRM'ning standart "muvaffaqiyatli" holati (id 142) ham sotuv hisoblansinmi? Sizda sotuv "Чек" bosqichida, shuning uchun false.
+  useWonStatus: false,
+  timezoneOffsetHours: 5, // Toshkent UTC+5
+  // Soat bo'yicha kunlik lidning yig'ma ulushi (0-soatdan 23-soat oxirigacha). Kerak bo'lsa o'zingizga moslang.
+  hourlyShare: [0, 0.01, 0.02, 0.02, 0.03, 0.04, 0.06, 0.09, 0.14, 0.22, 0.31, 0.39, 0.46, 0.52, 0.58, 0.64, 0.7, 0.76, 0.82, 0.88, 0.93, 0.97, 0.99, 1],
+  stages: STAGES,
+  reasonWords: REASON_WORDS,
+  // Reklama bilan bog'lanmaydigan teglar (kiruvchi qo'ng'iroq belgisi)
+  ignoreTags: ["incoming_call"],
+
+  projects: [
+    {
+      slug: "loyiha-1",
+      short: "Loyiha 1",
+      niche: "O'quv markazi",
+      name: "Loyiha 1 · O'quv markazi",
+      env: "P1", // META_TOKEN_P1, META_ACCOUNT_P1, AMO_SUBDOMAIN_P1, AMO_TOKEN_P1
+      thresholds: { cpl: 50000, qcpl: 75000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 30, reply: 60, roas: 2, noAns: 0.3 },
+      // Kunlik lid rejasi: dushanba-shanba va yakshanba. Alohida kunlar uchun: overrides: { "2026-10-20": 10 }
+      plan: { weekday: 28, sunday: 18, overrides: {} }
+      // dayBudget: 1400000,  // ixtiyoriy: kunlik byudjet (yozilmasa: kunlik reja × CPL chegarasi)
+    },
+    {
+      slug: "loyiha-2",
+      short: "Loyiha 2",
+      niche: "Chet elda o'qish",
+      name: "Loyiha 2 · Chet elda o'qish",
+      env: "P2",
+      thresholds: { cpl: 150000, qcpl: 220000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 15, reply: 60, roas: 3, noAns: 0.3 },
+      plan: { weekday: 14, sunday: 8, overrides: {} }
+    },
+    {
+      slug: "loyiha-3",
+      short: "Loyiha 3",
+      niche: "Wellness mahsulot",
+      name: "Loyiha 3 · Wellness mahsulot",
+      env: "P3",
+      thresholds: { cpl: 35000, qcpl: 70000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 40, reply: 60, roas: 1.5, noAns: 0.3 },
+      plan: { weekday: 32, sunday: 20, overrides: {} }
+    }
+  ]
+};
