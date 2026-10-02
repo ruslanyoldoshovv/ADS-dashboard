@@ -4,6 +4,8 @@ import { pingMeta } from "../../../lib/meta";
 import { pingAmo, fetchPipelines, fetchCustomFields, fetchPipelineStages } from "../../../lib/amo";
 import { projectEnv } from "../../../lib/env";
 import { getProjectData } from "../../../lib/data";
+import { resolveRange } from "../../../lib/range";
+import { tashkentNow } from "../../../lib/calc";
 
 export const maxDuration = 60;
 import { missingStages } from "../../../lib/stages";
@@ -45,8 +47,10 @@ export async function GET(req) {
   // Oxirgi kunlardagi lidlar bo'yicha namuna: reklama nomi qayerda turibdi va Meta bilan mos kelyaptimi
   if (out.amocrm.ok) {
     try {
-      const days = [1, 7, 30].includes(Number(new URL(req.url).searchParams.get("days"))) ? Number(new URL(req.url).searchParams.get("days")) : 7;
-      const D = await getProjectData(p, days, { tolerant: true });
+      // Davr: ?r=month (standart), ?r=30d, yoki ?from=2026-09-01&to=2026-09-30
+      const q = new URL(req.url).searchParams;
+      const range = resolveRange({ r: q.get("r") || (q.get("days") === "30" ? "30d" : q.get("days") === "1" ? "today" : q.get("days") === "7" ? "7d" : "month"), from: q.get("from"), to: q.get("to") }, tashkentNow(cfg));
+      const D = await getProjectData(p, range, { tolerant: true });
       out.namuna = D.diag || { izoh: "Namuna rejimi: haqiqiy ulanish yo'q" };
     } catch (err) { out.namuna = { ok: false, sabab: String(err.message) }; }
   }
