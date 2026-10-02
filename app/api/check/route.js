@@ -1,8 +1,10 @@
-// Ulanishni tekshirish: /api/check?p=loyiha-1  (token ko'rsatilmaydi, faqat OK yoki xato matni)
+// Ulanishni tekshirish: /api/check?p=nexus-school  (token ko'rsatilmaydi, faqat OK yoki xato matni)
 import cfg from "../../../projects.config";
 import { pingMeta } from "../../../lib/meta";
 import { pingAmo, fetchPipelines } from "../../../lib/amo";
 import { missingStages } from "../../../lib/stages";
+import { storeReady } from "../../../lib/store";
+import { getUsdRate } from "../../../lib/rate";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +17,13 @@ export async function GET(req) {
     META_TOKEN: !!process.env["META_TOKEN_" + e], META_ACCOUNT: !!process.env["META_ACCOUNT_" + e],
     AMO_SUBDOMAIN: !!process.env["AMO_SUBDOMAIN_" + e], AMO_TOKEN: !!process.env["AMO_TOKEN_" + e]
   };
-  const out = { loyiha: p.name, kiritilgan_o_zgaruvchilar: env };
+  const want = p.currency === "USD" ? "USD" : "UZS";
+  const out = { loyiha: p.name, kiritilgan_o_zgaruvchilar: env, sozlamadagi_valyuta: want, reja_saqlash_joyi_ulangan: storeReady() };
+  if (want === "USD") out.dollar_kursi = await getUsdRate(cfg);
   try {
     out.meta = env.META_TOKEN && env.META_ACCOUNT ? { ok: true, ...(await pingMeta({ token: process.env["META_TOKEN_" + e], account: process.env["META_ACCOUNT_" + e] })) } : { ok: false, sabab: "Token yoki akkaunt ID kiritilmagan" };
   } catch (err) { out.meta = { ok: false, sabab: String(err.message) }; }
+  if (out.meta.ok) out.meta.valyuta_mos = out.meta.currency === want;
   try {
     if (env.AMO_SUBDOMAIN && env.AMO_TOKEN) {
       const sub = process.env["AMO_SUBDOMAIN_" + e], tok = process.env["AMO_TOKEN_" + e];
