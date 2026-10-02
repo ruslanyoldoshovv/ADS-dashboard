@@ -3,6 +3,9 @@ import cfg from "../../../projects.config";
 import { pingMeta } from "../../../lib/meta";
 import { pingAmo, fetchPipelines, fetchCustomFields, fetchPipelineStages } from "../../../lib/amo";
 import { projectEnv } from "../../../lib/env";
+import { getProjectData } from "../../../lib/data";
+
+export const maxDuration = 60;
 import { missingStages } from "../../../lib/stages";
 import { storeReady } from "../../../lib/store";
 import { getUsdRate } from "../../../lib/rate";
@@ -39,5 +42,13 @@ export async function GET(req) {
       };
     } else out.amocrm = { ok: false, sabab: "Subdomen yoki token kiritilmagan" };
   } catch (err) { out.amocrm = { ok: false, sabab: String(err.message) }; }
+  // Oxirgi kunlardagi lidlar bo'yicha namuna: reklama nomi qayerda turibdi va Meta bilan mos kelyaptimi
+  if (out.amocrm.ok) {
+    try {
+      const days = [1, 7, 30].includes(Number(new URL(req.url).searchParams.get("days"))) ? Number(new URL(req.url).searchParams.get("days")) : 7;
+      const D = await getProjectData(p, days, { tolerant: true });
+      out.namuna = D.diag || { izoh: "Namuna rejimi: haqiqiy ulanish yo'q" };
+    } catch (err) { out.namuna = { ok: false, sabab: String(err.message) }; }
+  }
   return Response.json(out);
 }
