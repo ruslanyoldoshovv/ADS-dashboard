@@ -58,6 +58,13 @@ module.exports = {
         adset: ["Ad set name", "AD SET NAME"],
         campaign: ["Compaign name", "COMPAIGN NAME"]
       },
+      // LOST qilingan lidning sifati shu maydon qiymatiga qarab aniqlanadi.
+      // good: sifatli deb sanaladigan qiymatlar. bad: sifatsiz deb sanaladigan qiymatlar.
+      // Maydon bo'sh yoki ro'yxatda yo'q qiymat bo'lsa: lid "Ma'lumot berildi" yoki "Taklif qilindi" bosqichiga yetgan bo'lsa sifatli, aks holda sifatsiz.
+      lostQuality: { field: "Lid holati", good: [], bad: [] },
+      // Daromad hisobi: 1-oy daromadi = reklamadan kelgan sotuv soni × avgCheck (so'm). LTV = 1-oy daromadi × ltvMultiplier.
+      avgCheck: 1850000,
+      ltvMultiplier: 5,
       // Hisobga olinmaydigan voronkalar (masalan: ["Eski lidlar", "Fermer"]). Bo'sh bo'lsa hammasi hisoblanadi.
       ignorePipelines: [],
       // cpl: Meta CPL chegarasi ($). qcpl: sifatli lid narxi chegarasi ($).
