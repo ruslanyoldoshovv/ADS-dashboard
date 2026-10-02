@@ -29,6 +29,10 @@ module.exports = {
   // amoCRM'ning standart "muvaffaqiyatli" holati (id 142) ham sotuv hisoblansinmi? Sizda sotuv "Чек" bosqichida, shuning uchun false.
   useWonStatus: false,
   timezoneOffsetHours: 5, // Toshkent UTC+5
+  // Dollar kursi (reklama sarfi $ da, tushum so'mda bo'lgan loyihalarda ROAS uchun).
+  // "auto": Markaziy bank rasmiy kursi avtomatik olinadi. O'zingiz belgilamoqchi bo'lsangiz son yozing: usdRate: 12800
+  usdRate: "auto",
+  usdRateFallback: 11800, // Markaziy bank javob bermasa ishlatiladigan zaxira kurs
   // Soat bo'yicha kunlik lidning yig'ma ulushi (0-soatdan 23-soat oxirigacha). Kerak bo'lsa o'zingizga moslang.
   hourlyShare: [0, 0.01, 0.02, 0.02, 0.03, 0.04, 0.06, 0.09, 0.14, 0.22, 0.31, 0.39, 0.46, 0.52, 0.58, 0.64, 0.7, 0.76, 0.82, 0.88, 0.93, 0.97, 0.99, 1],
   stages: STAGES,
@@ -43,8 +47,14 @@ module.exports = {
       niche: "O'quv markazi",
       name: "Nexus School · O'quv markazi",
       env: "P1", // META_TOKEN_P1, META_ACCOUNT_P1, AMO_SUBDOMAIN_P1, AMO_TOKEN_P1
-      thresholds: { cpl: 50000, qcpl: 75000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 30, reply: 60, roas: 2, noAns: 0.3 },
-      // Kunlik lid rejasi: dushanba-shanba va yakshanba. Alohida kunlar uchun: overrides: { "2026-10-20": 10 }
+      // Reklama sarfi valyutasi: "USD" (dollar) yoki "UZS" (so'm). Tushum (amoCRM bitim summasi) doim so'mda.
+      currency: "USD",
+      // cpl: Meta CPL chegarasi ($). qcpl: sifatli lid narxi chegarasi ($).
+      // quality: sifatli ulush shundan past bo'lsa qizil. qualityWarn: shundan past bo'lsa sariq ("chegaraga yaqin").
+      // roas: null = ROAS chegarasi yo'q, faqat ko'rsatiladi. Chegara kerak bo'lsa son yozing, masalan roas: 2
+      thresholds: { cpl: 6, qcpl: 12, quality: 0.5, qualityWarn: 0.6, pace: 0.8, minLeads: 30, reply: 60, roas: null, noAns: 0.3 },
+      // Oylik lid rejasi PANELNING O'ZIDA kiritiladi ("Oylik reja" bo'limi) va kunlarga avtomatik bo'linadi.
+      // Quyidagi qiymat faqat panelda shu oy uchun reja kiritilmagan bo'lsa ishlatiladigan standart reja.
       plan: { weekday: 28, sunday: 18, overrides: {} }
       // dayBudget: 1400000,  // ixtiyoriy: kunlik byudjet (yozilmasa: kunlik reja × CPL chegarasi)
     },
@@ -54,6 +64,7 @@ module.exports = {
       niche: "Chet elda o'qish",
       name: "Loyiha 2 · Chet elda o'qish",
       env: "P2",
+      currency: "UZS",
       thresholds: { cpl: 150000, qcpl: 220000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 15, reply: 60, roas: 3, noAns: 0.3 },
       plan: { weekday: 14, sunday: 8, overrides: {} }
     },
@@ -63,6 +74,7 @@ module.exports = {
       niche: "Wellness mahsulot",
       name: "Loyiha 3 · Wellness mahsulot",
       env: "P3",
+      currency: "UZS",
       thresholds: { cpl: 35000, qcpl: 70000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 40, reply: 60, roas: 1.5, noAns: 0.3 },
       plan: { weekday: 32, sunday: 20, overrides: {} }
     }

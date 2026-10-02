@@ -26,14 +26,25 @@ Meta Ads + amoCRM ma'lumotini bitta panelda ko'rsatadi: sifatli lid, manba, ogoh
 3. **Deploy** bosing. Tayyor bo'lgach manzilni oching, login `admin`, parol o'zingiz yozgan.
 
 ## 3. Ulanishni tekshirish
-Brauzerda oching: `sizning-manzil.vercel.app/api/check?p=loyiha-1`
+Brauzerda oching: `sizning-manzil.vercel.app/api/check?p=nexus-school`
 - `ok: true` chiqsa, ulanish to'g'ri.
 - `topilmagan_bosqichlar` bo'sh bo'lishi kerak. Agar nom chiqsa, `projects.config.js` dagi bosqich nomini amoCRM'dagi nom bilan bir xil qiling.
 
 ## 4. Sozlamalarni o'zgartirish
 GitHub'da `projects.config.js` faylini oching > qalam belgisi (Edit) > o'zgartiring > Commit. Vercel o'zi qayta joylaydi.
-- Chegaralar (`thresholds`): CPL, sifatli lid narxi, sifatli ulush, ROAS va boshqalar.
-- Reja (`plan`): kunlik lid. Alohida kun uchun `overrides: { "2026-10-20": 10 }`.
+- Chegaralar (`thresholds`): CPL, sifatli lid narxi, sifatli ulush, ROAS va boshqalar. `roas: null` bo'lsa ROAS chegarasiz, faqat ko'rsatiladi.
+- Valyuta (`currency`): reklama sarfi `"USD"` yoki `"UZS"`. Tushum doim so'mda. Dollar loyihada ROAS uchun sarf Markaziy bank kursi bo'yicha so'mga o'giriladi (`usdRate`).
+- Reja (`plan`): faqat standart reja. Asosiy reja panelning o'zida kiritiladi (pastga qarang).
+
+## 5. Oylik lid rejasini paneldan kiritish
+Panelda "Oylik reja" bo'limida forma bor: oy, oylik lid soni va yakshanba qoidasi tanlanadi, "Rejani saqlash" bosiladi. Oylik son kunlarga avtomatik bo'linadi, yig'indi aynan oylik rejaga teng chiqadi. Joriy va keyingi oy uchun kiritish mumkin.
+
+Forma ishlashi uchun saqlash joyi bir marta ulanadi:
+1. Vercel > loyiha > **Storage** > **Create Database** > **Upstash for Redis** (bepul tarif).
+2. Loyihaga ulang (**Connect Project**). Vercel `KV_REST_API_URL` va `KV_REST_API_TOKEN` ni o'zi qo'shadi.
+3. **Redeploy** qiling.
+
+Saqlash joyi ulanmagan bo'lsa panel ishlayveradi, faqat `projects.config.js` dagi standart reja ko'rsatiladi.
 - Loyiha qo'shish: `projects` ro'yxatiga yangi blok nusxalang, `slug` va `env` ni o'zgartiring.
 
 ## Qoidalar
