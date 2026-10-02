@@ -1,7 +1,11 @@
 import Link from "next/link";
 import cfg from "../projects.config";
 import { getProjectData } from "../lib/data";
-import { buildView } from "../lib/calc";
+import { buildView, tashkentNow } from "../lib/calc";
+import { getUsdRate } from "../lib/rate";
+import { getPlans } from "../lib/store";
+import { buildDailyPlan, monthKey, monthLabel } from "../lib/plan";
+import { savePlan } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +14,14 @@ const COL = { red: "#A12116", amber: "#8A4B08", green: "#05603A" };
 
 function href(slug, days, by) { return `/?p=${slug}&days=${days}&by=${by}`; }
 
-async function loadAll(days, bySel, selSlug) {
+async function loadAll(days, bySel, selSlug, now, plans, rate) {
+  const ym = monthKey(now, 0);
   return Promise.all(cfg.projects.map(async (p) => {
     try {
-      const D = await getProjectData(p, days);
-      return { p, view: buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad"), D, error: null };
+      // Shu oy uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
+      const plan = buildDailyPlan(p, now, plans.items[p.slug + ":" + ym]);
+      const D = await getProjectData(p, days, { planToday: plan.byDay[now.day] || 0, rate: rate.rate });
+      return { p, view: buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan }), D, error: null };
     } catch (e) {
       return { p, view: null, D: null, error: String(e.message || e) };
     }
@@ -26,9 +33,21 @@ export default async function Page({ searchParams }) {
   const days = [1, 7, 30].includes(Number(sp.days)) ? Number(sp.days) : 7;
   const by = ["ad", "campaign", "adset"].includes(sp.by) ? sp.by : "ad";
   const sel = cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0];
-  const all = await loadAll(days, by, sel.slug);
+  const now = tashkentNow(cfg);
+  const [plans, rate] = await Promise.all([getPlans(), getUsdRate(cfg)]);
+  const all = await loadAll(days, by, sel.slug, now, plans, rate);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
+
+  // "Oylik lid rejasi" formasi uchun ma'lumot: joriy va keyingi oy
+  const planForm = {
+    ready: plans.ready, storeError: plans.error,
+    months: [0, 1].map((add) => {
+      const ym = monthKey(now, add), e = plans.items[sel.slug + ":" + ym];
+      return { ym, label: monthLabel(now, add), n: e ? e.n : null, sun: e ? e.sun : 1 };
+    }),
+    saved: typeof sp.saved === "string" ? sp.saved : "", err: typeof sp.err === "string" ? sp.err : ""
+  };
 
   return (
     <div style={{ maxWidth: 1296, margin: "0 auto", padding: "32px clamp(16px, 4vw, 32px) 48px", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -82,12 +101,12 @@ export default async function Page({ searchParams }) {
         </div>
       )}
 
-      {v && <Body v={v} sel={sel} days={days} by={by} />}
+      {v && <Body v={v} sel={sel} days={days} by={by} planForm={planForm} />}
     </div>
   );
 }
 
-function Body({ v, sel, days, by }) {
+function Body({ v, sel, days, by, planForm }) {
   return (
     <>
       {/* Bugun */}
@@ -134,7 +153,7 @@ function Body({ v, sel, days, by }) {
           <span className="muted">{v.alertSummary}</span>
         </div>
         <div style={{ padding: "10px 14px", borderRadius: 10, background: "#F3F5F7", fontSize: 13, color: "#2B3A46" }}>{v.thresholdsText}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))", gap: 12 }}>
           {v.alerts.map((a, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 16, borderRadius: 12, background: a.bg }}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
@@ -151,7 +170,7 @@ function Body({ v, sel, days, by }) {
 
       {/* Oylik reja + kalendar */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "stretch" }}>
-        <div className="card" style={{ flex: "1 1 300px", gap: 20 }}>
+        <div id="reja" className="card" style={{ flex: "1 1 300px", minWidth: 0, gap: 20 }}>
           <div>
             <h2 className="h2">Oylik reja</h2>
             <div className="muted">{v.plan.monthTitle} · barcha lidlar</div>
@@ -174,9 +193,10 @@ function Body({ v, sel, days, by }) {
             <Tile t="Kuniga kerak" v={v.plan.perDay + " lid"} s="rejaga yetish uchun" />
             <Tile t="Oy oxiriga prognoz" v={v.plan.forecast + " lid"} s={"rejaning " + v.plan.forecastPct} />
           </div>
+          <PlanForm f={planForm} sel={sel} days={days} by={by} />
         </div>
 
-        <div className="card" style={{ flex: "2 1 560px" }}>
+        <div className="card" style={{ flex: "2 1 560px", minWidth: 0 }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
             <h2 className="h2">Kunlik reja: {v.plan.monthTitle}</h2>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 12, fontWeight: 700 }}>
@@ -211,7 +231,7 @@ function Body({ v, sel, days, by }) {
       </div>
 
       {/* Voronka + manba */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
         <div className="card">
           <div><h2 className="h2">Sotuv voronkasi (amoCRM bosqichlari)</h2><div className="muted">Foiz: oldingi bosqichdan o'tgan lidlar ulushi</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -267,7 +287,7 @@ function Body({ v, sel, days, by }) {
         <div style={{ overflowX: "auto" }}>
           <div style={{ minWidth: 1860 }}>
             <div className="tbl head">
-              <div className="sticky">{v.nameHeader}</div><div className="r">Sarf, so'm</div><div className="r">Lid</div><div>Sifatli</div><div className="r">Nedozvon</div><div className="r">Jarayonda</div><div className="r">Yo'qotilgan</div><div className="r">Keldi</div><div className="r">Sotuv</div><div className="r">Lid → sotuv</div><div className="r">Daromad, so'm</div><div className="r">ROAS</div><div className="r">Meta CPL</div><div className="r">Sifatli lid narxi</div><div className="r">Sotuv narxi</div><div className="r">Dubl</div><div>Tavsiya</div>
+              <div className="sticky">{v.nameHeader}</div><div className="r">{v.spendHeader}</div><div className="r">Lid</div><div>Sifatli</div><div className="r">Nedozvon</div><div className="r">Jarayonda</div><div className="r">Yo'qotilgan</div><div className="r">Keldi</div><div className="r">Sotuv</div><div className="r">Lid → sotuv</div><div className="r">Daromad, so'm</div><div className="r">ROAS</div><div className="r">Meta CPL</div><div className="r">Sifatli lid narxi</div><div className="r">Sotuv narxi</div><div className="r">Dubl</div><div>Tavsiya</div>
             </div>
             {v.rows.map((r, i) => (
               <div key={i} className="tbl" style={{ background: r.rowBg }}>
@@ -303,7 +323,7 @@ function Body({ v, sel, days, by }) {
       </div>
 
       {/* Sabablar + operatorlar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
         <div className="card">
           <div><h2 className="h2">Sifatsiz lidlar sabablari</h2><div className="muted">{v.reasonsTotal} ta lid · amoCRM'dagi lost sababi bo'yicha</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -345,6 +365,57 @@ function Body({ v, sel, days, by }) {
         </div>
       </div>
     </>
+  );
+}
+
+// Oylik lid rejasini panelning o'zidan kiritish. Reja kunlarga avtomatik bo'linadi.
+function PlanForm({ f, sel, days, by }) {
+  const cur = f.months[0];
+  const ERR = {
+    input: "Reja saqlanmadi: lid soni 1 dan 100 000 gacha butun son bo'lishi kerak.",
+    nostore: "Reja saqlanmadi: saqlash joyi hali ulanmagan.",
+    store: "Reja saqlanmadi: saqlash joyi javob bermadi. Birozdan keyin qayta urinib ko'ring."
+  };
+  const savedMonth = f.months.find((m) => m.ym === f.saved);
+  const field = { minHeight: 44, padding: "0 12px", borderRadius: 10, border: "1px solid #C8D3DC", background: "#FFFFFF", color: "#14212B", font: "inherit", fontSize: 15, width: "100%" };
+  const label = { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 700, color: "#566573" };
+  return (
+    <div style={{ borderTop: "1px solid #E9EEF2", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div>
+        <div style={{ fontWeight: 700 }}>Oylik lid rejasini kiritish</div>
+        <div className="muted">Oylik son kiritiladi, kunlarga avtomatik bo'linadi. Har oy uchun alohida.</div>
+      </div>
+      {savedMonth && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Saqlandi: {savedMonth.label} uchun {savedMonth.n} lid.</div>}
+      {f.err && ERR[f.err] && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, fontWeight: 600 }}>{ERR[f.err]}</div>}
+      {f.storeError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Saqlangan rejalar o'qilmadi ({f.storeError}). Hozircha standart reja ko'rsatilmoqda.</div>}
+      {!f.ready && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Forma hali ishlamaydi: rejani saqlash joyi ulanmagan. Vercel'da loyihani oching: Storage, Create Database, Upstash for Redis. Ulangach forma o'zi ochiladi.</div>}
+      <form action={savePlan} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <input type="hidden" name="slug" value={sel.slug} />
+        <input type="hidden" name="days" value={days} />
+        <input type="hidden" name="by" value={by} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
+          <label style={label}>Oy
+            <select name="month" defaultValue={cur.ym} disabled={!f.ready} style={field}>
+              {f.months.map((m) => <option key={m.ym} value={m.ym}>{m.label}</option>)}
+            </select>
+          </label>
+          <label style={label}>Oylik lid rejasi
+            <input name="plan" type="number" min="1" max="100000" step="1" required inputMode="numeric" placeholder="masalan 800" defaultValue={cur.n || ""} disabled={!f.ready} style={field} />
+          </label>
+          <label style={label}>Yakshanba
+            <select name="sun" defaultValue={String(cur.sun)} disabled={!f.ready} style={field}>
+              <option value="1">Oddiy kun (teng)</option>
+              <option value="0.65">Kamroq (65%)</option>
+              <option value="0">Dam olish (0)</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit" disabled={!f.ready} style={{ alignSelf: "flex-start", minHeight: 44, padding: "0 20px", borderRadius: 10, border: 0, background: f.ready ? "#14212B" : "#C8D3DC", color: "#FFFFFF", font: "inherit", fontWeight: 700, cursor: f.ready ? "pointer" : "not-allowed" }}>Rejani saqlash</button>
+      </form>
+      <div style={{ fontSize: 12, color: "#566573" }}>
+        {f.months.map((m) => m.label + ": " + (m.n ? m.n + " lid" : "kiritilmagan")).join(" · ")}
+      </div>
+    </div>
   );
 }
 
