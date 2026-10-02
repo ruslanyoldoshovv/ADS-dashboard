@@ -8,6 +8,7 @@ import { buildDailyPlan, monthKey, monthLabel } from "../lib/plan";
 import { savePlan } from "./actions";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // amoCRM'dan ko'p lid o'qilganda vaqt yetishi uchun
 
 const DOW = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
 const COL = { red: "#A12116", amber: "#8A4B08", green: "#05603A" };
@@ -254,7 +255,7 @@ function Body({ v, sel, days, by, planForm }) {
         </div>
 
         <div className="card">
-          <div><h2 className="h2">Lid manbasi</h2><div className="muted">Reklama tegi bor lid reklamadan. incoming_call tegli yoki tegsiz lid kiruvchi qo'ng'iroq deb olinadi.</div></div>
+          <div><h2 className="h2">Lid manbasi</h2><div className="muted">{v.sourceNote || "Reklama tegi bor lid reklamadan. incoming_call tegli yoki tegsiz lid kiruvchi qo'ng'iroq deb olinadi."}</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {v.sources.map((s) => (
               <div key={s.name} style={{ padding: 16, borderRadius: 12, background: "#F3F5F7", display: "flex", flexDirection: "column", gap: 12 }}>
