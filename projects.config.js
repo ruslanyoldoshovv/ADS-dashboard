@@ -81,9 +81,15 @@ module.exports = {
       // quality: sifatli ulush shundan past bo'lsa qizil. qualityWarn: shundan past bo'lsa sariq ("chegaraga yaqin").
       // roas: null = ROAS chegarasi yo'q, faqat ko'rsatiladi. Chegara kerak bo'lsa son yozing, masalan roas: 2
       thresholds: { cpl: 6, qcpl: 12, quality: 0.5, qualityWarn: 0.6, pace: 0.8, minLeads: 30, reply: 60, roas: null, noAns: 0.3 },
-      // Oylik lid rejasi PANELNING O'ZIDA kiritiladi ("Oylik reja" bo'limi) va kunlarga avtomatik bo'linadi.
-      // Quyidagi qiymat faqat panelda shu oy uchun reja kiritilmagan bo'lsa ishlatiladigan standart reja.
-      plan: { weekday: 28, sunday: 18, overrides: {} }
+      // Reja nimada o'lchanadi: "quality" = SIFATLI lid soni (barcha manba: reklama va qo'ng'iroqlar), "leads" = jami lid soni.
+      planBy: "quality",
+      // true = kiruvchi qo'ng'iroqlar (reklama nomi yozilmagan lidlar) ham reklamadan kelgan deb hisoblanadi.
+      // Umumiy ko'rsatkichlar (sifatli lid narxi va ulushi, sotuv narxi, daromad, ROAS, LTV) barcha lidlar bo'yicha chiqadi.
+      // Jadvaldagi har bir reklama qatorida doim faqat shu reklamaga bog'langan lidlar sanaladi.
+      callsFromAds: true,
+      // Oylik reja PANELNING O'ZIDA kiritiladi ("Oylik reja" tugmasi) va kunlarga avtomatik bo'linadi.
+      // Quyidagi qiymat faqat panelda shu oy uchun reja kiritilmagan bo'lsa ishlatiladigan standart reja (0 = standart reja yo'q).
+      plan: { weekday: 0, sunday: 0, overrides: {} }
       // dayBudget: 1400000,  // ixtiyoriy: kunlik byudjet (yozilmasa: kunlik reja × CPL chegarasi)
     },
     {
