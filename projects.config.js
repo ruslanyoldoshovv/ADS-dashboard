@@ -87,6 +87,9 @@ module.exports = {
       // Umumiy ko'rsatkichlar (sifatli lid narxi va ulushi, sotuv narxi, daromad, ROAS, LTV) barcha lidlar bo'yicha chiqadi.
       // Jadvaldagi har bir reklama qatorida doim faqat shu reklamaga bog'langan lidlar sanaladi.
       callsFromAds: true,
+      // Sifatli ulush nimaga nisbatan hisoblanadi: "processed" = faqat qayta ishlangan lidlarga (sifatli + sifatsiz),
+      // jarayondagi lidlar hisobga kirmaydi. "all" = hamma lidlarga.
+      qualityShareBy: "processed",
       // Oylik reja PANELNING O'ZIDA kiritiladi ("Oylik reja" tugmasi) va kunlarga avtomatik bo'linadi.
       // Quyidagi qiymat faqat panelda shu oy uchun reja kiritilmagan bo'lsa ishlatiladigan standart reja (0 = standart reja yo'q).
       plan: { weekday: 0, sunday: 0, overrides: {} }
