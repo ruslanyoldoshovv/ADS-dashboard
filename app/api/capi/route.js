@@ -5,7 +5,7 @@ import { projectEnv } from "../../../lib/env";
 import { capiEnv, capiConf, hookKey, pingDataset } from "../../../lib/capi";
 import { fetchCustomFields } from "../../../lib/amo";
 import { nkey } from "../../../lib/stages";
-import { storeReady, sentCount, logRead } from "../../../lib/store";
+import { storeReady, sentCount, logRead, hookRead } from "../../../lib/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -47,6 +47,8 @@ export async function GET(req) {
     sinov_kodi_bilan: origin + "/api/capi/sync?p=" + p.slug + "&days=1&test=TEST_KODINGIZ"
   };
   if (storeReady()) {
+    // Webhook diagnostikasi: amoCRM'dan nechta xabar kelgan va har biri bilan nima bo'lgan
+    try { out.webhook = await hookRead(p.slug, 15); } catch (e) { out.webhook = { xato: String(e.message) }; }
     try { out.jami_yuborilgan_hodisa = await sentCount(p.slug); out.oxirgi_yozuvlar = await logRead(p.slug, 30); }
     catch (e) { out.jurnal_xatosi = String(e.message); }
   }
