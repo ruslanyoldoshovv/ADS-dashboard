@@ -3,7 +3,7 @@ import cfg from "../projects.config";
 import { getProjectData } from "../lib/data";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
-import { getPlans } from "../lib/store";
+import { getPlans, planEntry } from "../lib/store";
 import { buildDailyPlan, monthKey } from "../lib/plan";
 import { resolveRange, PRESETS } from "../lib/range";
 import { savePlan } from "./actions";
@@ -22,8 +22,8 @@ async function loadAll(range, bySel, selSlug, now, plans, rate) {
   return Promise.all(cfg.projects.map(async (p) => {
     try {
       // Tanlangan davr oyi uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
-      const plan = buildDailyPlan(p, range.planMonth, plans.items[p.slug + ":" + range.planMonthKey]);
-      const todayPlan = isCur ? plan : buildDailyPlan(p, now, plans.items[p.slug + ":" + monthKey(now, 0)]);
+      const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
+      const todayPlan = isCur ? plan : buildDailyPlan(p, now, planEntry(plans, p, monthKey(now, 0)));
       const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate });
       const view = buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan, planMonth: range.planMonth, showToday: range.includesToday });
       return { p, view, D, error: null };
@@ -45,15 +45,17 @@ export default async function Page({ searchParams }) {
   const v = cur.view;
 
   // Oylik lid rejasi formasi: tanlangan davr oyi uchun (har oy alohida saqlanadi)
-  const entry = plans.items[sel.slug + ":" + range.planMonthKey];
+  const entry = planEntry(plans, sel, range.planMonthKey);
+  const oldEntry = !entry && plans.items[sel.slug + ":" + range.planMonthKey] ? plans.items[sel.slug + ":" + range.planMonthKey] : null; // eski o'lchovda (jami lid) kiritilgan reja
+  const unit = sel.planBy === "quality" ? "sifatli lid" : "lid";
   const planForm = {
     ready: plans.ready, storeError: plans.error,
     ym: range.planMonthKey, label: range.planMonthLabel, n: entry ? entry.n : null, sun: entry ? entry.sun : 1,
-    total: v ? v.planTotal : null,
+    total: v ? v.planTotal : null, unit, oldN: oldEntry ? oldEntry.n : null,
     saved: typeof sp.saved === "string" ? sp.saved : "", err: typeof sp.err === "string" ? sp.err : ""
   };
   const ERR = {
-    input: "Reja saqlanmadi: lid soni 1 dan 100 000 gacha butun son bo'lishi kerak.",
+    input: "Reja saqlanmadi: son 1 dan 100 000 gacha butun bo'lishi kerak.",
     nostore: "Reja saqlanmadi: saqlash joyi hali ulanmagan.",
     store: "Reja saqlanmadi: saqlash joyi javob bermadi. Birozdan keyin qayta urinib ko'ring."
   };
@@ -102,7 +104,7 @@ export default async function Page({ searchParams }) {
       </div>
 
       {range.note && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>{range.note}</div>}
-      {planForm.saved === planForm.ym && planForm.n && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Saqlandi: {planForm.label} uchun oylik reja {planForm.n} lid.</div>}
+      {planForm.saved === planForm.ym && planForm.n && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Saqlandi: {planForm.label} uchun oylik reja {planForm.n} {planForm.unit}.</div>}
       {planForm.err && ERR[planForm.err] && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, fontWeight: 600 }}>{ERR[planForm.err]}</div>}
       {planForm.storeError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Saqlangan rejalar o'qilmadi ({planForm.storeError}). Hozircha standart reja ko'rsatilmoqda.</div>}
 
@@ -167,14 +169,15 @@ function PlanForm({ f, sel, by, range }) {
       <summary className="popbtn">
         <span style={{ display: "flex", flexDirection: "column" }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "#566573" }}>Oylik reja · {f.label}</span>
-          <span style={{ fontWeight: 700 }}>{f.n ? f.n + " lid" : "kiritilmagan" + (f.total ? " (standart " + f.total + ")" : "")}</span>
+          <span style={{ fontWeight: 700 }}>{f.n ? f.n + " " + f.unit : "kiritilmagan" + (f.total ? " (standart " + f.total + ")" : "")}</span>
         </span>
         <span aria-hidden="true" style={{ color: "#566573" }}>▾</span>
       </summary>
       <div className="poppanel">
         <div>
-          <div style={{ fontWeight: 700 }}>{f.label} uchun lid rejasi</div>
-          <div className="muted">Oylik son kiritiladi, kunlarga avtomatik bo'linadi. Har oy alohida saqlanadi: boshqa oyni tanlasangiz, o'sha oyning rejasi chiqadi.</div>
+          <div style={{ fontWeight: 700 }}>{f.label} uchun {f.unit} rejasi</div>
+          <div className="muted">{f.unit === "sifatli lid" ? "Oy davomida olinishi kerak bo'lgan SIFATLI lidlar soni kiritiladi (jami lid emas). " : "Oylik son kiritiladi. "}Son kunlarga avtomatik bo'linadi. Har oy alohida saqlanadi: boshqa oyni tanlasangiz, o'sha oyning rejasi chiqadi.</div>
+          {f.oldN && <div className="muted" style={{ color: "#7A3F06" }}>Bu oy uchun avval jami lid bo'yicha {f.oldN} kiritilgan edi. Endi reja sifatli lid sonida o'lchanadi, shuning uchun sonni qayta kiriting.</div>}
         </div>
         {!f.ready && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Forma ishlamaydi: rejani saqlash joyi ulanmagan (Vercel, Storage, Upstash for Redis).</div>}
         <form action={savePlan} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -182,8 +185,8 @@ function PlanForm({ f, sel, by, range }) {
           <input type="hidden" name="by" value={by} />
           <input type="hidden" name="rq" value={range.query} />
           <input type="hidden" name="month" value={f.ym} />
-          <label style={lab}>Oylik lid rejasi
-            <input className="field" name="plan" type="number" min="1" max="100000" step="1" required inputMode="numeric" placeholder="masalan 1200" defaultValue={f.n || ""} disabled={!f.ready} />
+          <label style={lab}>Oylik {f.unit} rejasi
+            <input className="field" name="plan" type="number" min="1" max="100000" step="1" required inputMode="numeric" placeholder={f.unit === "sifatli lid" ? "masalan 600" : "masalan 1200"} defaultValue={f.n || ""} disabled={!f.ready} />
           </label>
           <label style={lab}>Yakshanba
             <select className="field" name="sun" defaultValue={String(f.sun)} disabled={!f.ready}>
@@ -272,12 +275,12 @@ function Body({ v, sel, rq, by }) {
         <div id="reja" className="card" style={{ flex: "1 1 300px", minWidth: 0, gap: 20 }}>
           <div>
             <h2 className="h2">Oylik reja</h2>
-            <div className="muted">{v.plan.monthTitle} · barcha lidlar</div>
+            <div className="muted">{v.plan.monthTitle} · {v.planByQuality ? "sifatli lidlar (barcha manba)" : "barcha lidlar"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
               <span style={{ fontSize: 44, lineHeight: 1, fontWeight: 800, letterSpacing: "-0.03em" }}>{v.plan.monthPct}</span>
-              <span style={{ fontSize: 14, color: "#566573" }}><b style={{ color: "#14212B" }}>{v.plan.fact}</b> / {v.plan.monthPlan} lid</span>
+              <span style={{ fontSize: 14, color: "#566573" }}><b style={{ color: "#14212B" }}>{v.plan.fact}</b> / {v.plan.monthPlan} {v.planUnit}</span>
             </div>
             <div style={{ position: "relative", height: 14, borderRadius: 999, background: "#E6EBEF" }}>
               <div style={{ height: 14, borderRadius: 999, background: "#1D4ED8", width: `min(${v.plan.monthPct}, 100%)` }} />
@@ -286,17 +289,17 @@ function Body({ v, sel, rq, by }) {
             <div style={{ fontSize: 12, color: "#566573" }}>Qora chiziq: kechagacha bajarilishi kerak bo'lgan ulush ({v.plan.expectedPct})</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
-            <Tile t="Kechagacha reja" v={v.plan.planToDate + " lid"} />
+            <Tile t="Kechagacha reja" v={v.plan.planToDate} s={v.planUnit} />
             <Tile t="Reja tezligi" v={v.plan.pace} s={v.plan.paceWord} bg={v.plan.paceBg} ink={v.plan.paceInk} />
-            <Tile t="Qolgan reja" v={v.plan.remaining + " lid"} s={v.plan.daysLeft + " kun qoldi"} />
-            <Tile t="Kuniga kerak" v={v.plan.perDay + " lid"} s="rejaga yetish uchun" />
-            <Tile t="Oy oxiriga prognoz" v={v.plan.forecast + " lid"} s={"rejaning " + v.plan.forecastPct} />
+            <Tile t="Qolgan reja" v={v.plan.remaining} s={v.planUnit + " · " + v.plan.daysLeft + " kun qoldi"} />
+            <Tile t="Kuniga kerak" v={v.plan.perDay} s={v.planUnit + " · rejaga yetish uchun"} />
+            <Tile t="Oy oxiriga prognoz" v={v.plan.forecast} s={v.planUnit + " · rejaning " + v.plan.forecastPct} />
           </div>
         </div>
 
         <div className="card" style={{ flex: "2 1 560px", minWidth: 0 }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-            <h2 className="h2">Kunlik reja: {v.plan.monthTitle}</h2>
+            <h2 className="h2">Kunlik reja{v.planByQuality ? " (sifatli lid)" : ""}: {v.plan.monthTitle}</h2>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 12, fontWeight: 700 }}>
               <span style={{ padding: "4px 10px", borderRadius: 999, background: "#E4F5EA", color: "#05603A" }}>100% va undan yuqori</span>
               <span style={{ padding: "4px 10px", borderRadius: 999, background: "#FEF3C7", color: "#7A3F06" }}>80-99%</span>
@@ -319,6 +322,7 @@ function Body({ v, sel, rq, by }) {
                     <div style={{ fontSize: 12 }}>Reja: <b>{c.plan}</b></div>
                     {c.showFact && <div style={{ fontSize: 12 }}>{c.factLabel}: <b>{c.fact}</b></div>}
                     {c.showPct && <div style={{ fontSize: 16, fontWeight: 800 }}>{c.pct}</div>}
+                    {c.extra && <div style={{ fontSize: 11, opacity: 0.8, marginTop: "auto" }}>{c.extra}</div>}
                   </div>
                 ))}
               </div>
@@ -423,12 +427,12 @@ function Body({ v, sel, rq, by }) {
       {/* Sabablar + operatorlar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
         <div className="card">
-          <div><h2 className="h2">Sifatsiz lidlar sabablari</h2><div className="muted">{v.reasonsTotal} ta lid · amoCRM'dagi lost sababi bo'yicha</div></div>
+          <div><h2 className="h2">LOST sabablari</h2><div className="muted">{v.reasonsSub}</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {v.reasons.map((x) => (
               <div key={x.label} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14 }}>
-                  <span style={{ fontWeight: 600 }}>{x.label}</span><span style={{ color: "#566573" }}><b style={{ color: "#14212B" }}>{x.count}</b> · {x.share}</span>
+                  <span style={{ fontWeight: 600 }}>{x.label}</span><span style={{ color: "#566573", whiteSpace: "nowrap" }}><b style={{ color: "#14212B" }}>{x.count} ta</b> · {x.share} <span style={{ fontSize: 12 }}>(sifatli {x.good} · sifatsiz {x.bad})</span></span>
                 </div>
                 <div style={{ height: 10, borderRadius: 999, background: "#E6EBEF", overflow: "hidden" }}><div style={{ height: 10, borderRadius: 999, background: "#7A8B99", width: x.width }} /></div>
               </div>

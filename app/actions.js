@@ -25,6 +25,6 @@ export async function savePlan(formData) {
   if (!storeReady()) redirect(back("err=nostore"));
 
   let ok = true;
-  try { await setPlan(slug, ym, { n, sun, at: new Date().toISOString() }); } catch (e) { ok = false; }
+  try { await setPlan(slug, ym, { n, sun, k: project.planBy === "quality" ? "q" : "l", at: new Date().toISOString() }); } catch (e) { ok = false; }
   redirect(back(ok ? "saved=" + ym : "err=store"));
 }
