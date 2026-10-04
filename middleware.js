@@ -7,6 +7,12 @@ export function middleware(req) {
   if (!pass) {
     return new NextResponse("DASH_PASSWORD o'rnatilmagan. Vercel > Settings > Environment Variables'ga qo'shing.", { status: 503 });
   }
+  // Parolsiz ochiladigan ikki manzil (ikkalasi ham ma'lumot ko'rsatmaydi):
+  //  - amoCRM webhook: o'z kaliti bilan himoyalangan (kalit manzil ichida, lib/capi.js tekshiradi)
+  //  - Vercel'ning kunlik avtomatik ishga tushirishi (cron): faqat "ok" qaytaradi, 10 daqiqada bir martadan ko'p ishlamaydi
+  const path = req.nextUrl.pathname;
+  if (path === "/api/amo-webhook") return NextResponse.next();
+  if (path === "/api/capi/sync" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
   const auth = req.headers.get("authorization") || "";
   if (auth.startsWith("Basic ")) {
     try {

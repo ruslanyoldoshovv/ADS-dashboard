@@ -65,6 +65,16 @@ module.exports = {
       // Daromad hisobi: 1-oy daromadi = reklamadan kelgan sotuv soni × avgCheck (so'm). LTV = 1-oy daromadi × ltvMultiplier.
       avgCheck: 1850000,
       ltvMultiplier: 5,
+      // Meta Conversions API: amoCRM bosqichlari Meta'ga shu nomlar bilan yuboriladi (Events Manager'da ko'rinadi).
+      // lead = har bir yangi lid, quality = sifatli lid, visit = "Suhbatga keldi" voronkasiga o'tdi, sale = Чек.
+      // leadId: Meta lid ID'si yoziladigan amoCRM maydoni nomlari (bo'lmasa telefon raqami xeshi ishlatiladi).
+      // onlyAdLeads: true = faqat reklamadan kelgan lidlar yuboriladi (qo'ng'iroqlar yuborilmaydi).
+      capi: {
+        crm: "amoCRM",
+        leadId: ["Meta lead ID", "lead id", "leadgen id"],
+        onlyAdLeads: true,
+        events: { lead: "Lead", quality: "Sifatli lid", visit: "Suhbatga keldi", sale: "Sotuv" }
+      },
       // Hisobga olinmaydigan voronkalar (masalan: ["Eski lidlar", "Fermer"]). Bo'sh bo'lsa hammasi hisoblanadi.
       ignorePipelines: [],
       // cpl: Meta CPL chegarasi ($). qcpl: sifatli lid narxi chegarasi ($).

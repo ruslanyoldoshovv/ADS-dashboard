@@ -58,3 +58,31 @@ Saqlash joyi ulanmagan bo'lsa panel ishlayveradi, faqat `projects.config.js` dag
 ## Hozircha ulanmagan
 - Operatorning birinchi javob vaqti (jadvalda "—").
 - Telegram ogohlantirish (keyingi bosqich).
+
+## Meta Conversions API (amoCRM bosqichlari → Meta)
+
+Panel amoCRM'dagi lid bosqichlarini Meta'ga yuboradi: `Lead` → `Sifatli lid` → `Suhbatga keldi` → `Sotuv`.
+Shunda kampaniyani "lid" emas, "sifatli lid" bo'yicha optimallashtirish mumkin bo'ladi.
+
+**Vercel > Environment Variables:**
+
+| O'zgaruvchi | Qiymat |
+|---|---|
+| `CAPI_DATASET_P1` | Events Manager'dagi dataset (piksel) ID |
+| `CAPI_TOKEN_P1` | Dataset > Settings > Generate access token |
+| `CAPI_TEST_CODE_P1` | ixtiyoriy: sinov kodi (qo'yilsa hodisalar faqat Test events'ga tushadi) |
+
+**Manzillar (panel paroli bilan):**
+
+- `/api/capi?p=nexus-school` : holat, amoCRM'ga qo'yiladigan webhook manzili, oxirgi yuborilgan hodisalar
+- `/api/capi/sync?p=nexus-school&days=3&dry=1` : nechta hodisa ketishini ko'rish (hech narsa yuborilmaydi)
+- `/api/capi/sync?p=nexus-school&days=3` : oxirgi 3 kunni yuborish
+- `/api/capi/sync?p=nexus-school&days=1&test=TEST123` : Test events'ga sinov yuborish
+
+**Qanday ishlaydi:**
+
+- Lid Meta'da `Meta lead ID` maydoni (lid, kompaniya yoki kontaktda) bo'yicha topiladi. Maydon bo'lmasa, kontakt telefon raqamining xeshi (SHA-256) yuboriladi. Telefonning o'zi Meta'ga ochiq ko'rinishda ketmaydi.
+- Faqat reklamadan kelgan lidlar yuboriladi (reklama nomi maydoni to'ldirilgan). Kiruvchi qo'ng'iroqlar yuborilmaydi.
+- Har bosqich bir lid uchun bir marta yuboriladi (Upstash'da eslab qolinadi).
+- Real vaqt: amoCRM webhook. Zaxira: Vercel har kuni 09:00 va 21:00 da (Toshkent) oxirgi 7 kunni tekshirib, o'tkazib yuborilganini yuboradi.
+- Hodisa nomlari va sozlamalar: `projects.config.js` > `capi`.
