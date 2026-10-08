@@ -3,11 +3,12 @@ import cfg from "../projects.config";
 import { getProjectData } from "../lib/data";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
-import { getPlans, planEntry } from "../lib/store";
+import { getPlans, planEntry, colsRead, storeReady } from "../lib/store";
 import { buildDailyPlan, monthKey } from "../lib/plan";
 import { resolveRange, PRESETS } from "../lib/range";
 import { savePlan } from "./actions";
-import StickyTable from "./StickyTable";
+import ResultsTable from "./ResultsTable";
+import Chart from "./Chart";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // amoCRM'dan ko'p lid o'qilganda vaqt yetishi uchun
@@ -42,7 +43,7 @@ export default async function Page({ searchParams }) {
   const sel = cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0];
   const now = tashkentNow(cfg);
   const range = resolveRange(sp, now);
-  const [plans, rate] = await Promise.all([getPlans(), getUsdRate(cfg)]);
+  const [plans, rate, cols] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null]);
   const all = await loadAll(range, by, sel.slug, now, plans, rate, sm);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
@@ -120,7 +121,7 @@ export default async function Page({ searchParams }) {
         </div>
       )}
 
-      {v && <Body v={v} sel={sel} rq={range.query} by={by} sm={sm} />}
+      {v && <Body v={v} sel={sel} rq={range.query} by={by} sm={sm} cols={cols} />}
     </div>
   );
 }
@@ -220,7 +221,7 @@ function PlanForm({ f, sel, by, range }) {
   );
 }
 
-function Body({ v, sel, rq, by, sm }) {
+function Body({ v, sel, rq, by, sm, cols }) {
   return (
     <>
       {/* Bugun: faqat tanlangan davr bugunni o'z ichiga olganda */}
@@ -259,6 +260,9 @@ function Body({ v, sel, rq, by, sm }) {
           </div>
         ))}
       </div>
+
+      {/* Dinamika grafigi: o'zining davr tanlagichi bilan, alohida yuklanadi */}
+      <Chart slug={sel.slug} />
 
       {/* Ogohlantirishlar: yopiq turadi, bosilganda ochiladi */}
       <details className="card fold">
@@ -405,41 +409,7 @@ function Body({ v, sel, rq, by, sm }) {
             ))}
           </div>
         </div>
-        <StickyTable head={
-          <div className="tbl head">
-            <div className="sticky">{v.nameHeader}</div><div className="r">{v.spendHeader}</div><div className="r">Lid</div><div>Sifatli</div><div className="r">Nedozvon</div><div className="r">Jarayonda</div><div className="r">Yo'qotilgan</div><div className="r">Keldi</div><div className="r">Sotuv</div><div className="r">Lid → sotuv</div><div className="r">{v.revenueHeader || "Daromad, so'm"}</div><div className="r">ROAS</div><div className="r">Meta CPL</div><div className="r">Sifatli lid narxi</div><div className="r">Sotuv narxi</div><div className="r">Dubl</div><div>Tavsiya</div>
-          </div>
-        }>
-          {v.rows.map((r, i) => (
-            <div key={i} className="tbl" style={{ background: r.rowBg }}>
-              <div className="sticky" style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontWeight: 700 }}>{r.name}</span><span className="muted">{r.sub}</span></div>
-              <div className="r">{r.spend}</div>
-              <div className="r" style={{ fontWeight: 700 }}>{r.leads}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ color: r.goodColor, whiteSpace: "nowrap" }}><b>{r.goodPct}</b> · {r.good}</span>
-                <div style={{ height: 8, borderRadius: 999, background: "#E6EBEF", overflow: "hidden" }}><div style={{ height: 8, borderRadius: 999, width: r.goodPct, background: r.barColor }} /></div>
-              </div>
-              <Two a={r.noAns} b={r.noAnsPct} c={r.noAnsColor} bold />
-              <Two a={r.inProg} b={r.inProgPct} c="#566573" />
-              <Two a={r.lost} b={r.lostPct} c="#566573" />
-              <div className="r">{r.visits}</div>
-              <div className="r" style={{ fontWeight: 700 }}>{r.sales}</div>
-              <div className="r" style={{ fontWeight: 700, color: r.crColor }}>{r.cr}</div>
-              <div className="r">{r.revenue}</div>
-              <div className="r" style={{ fontWeight: 800, color: r.roasColor }}>{r.roas}</div>
-              <div className="r" style={{ fontWeight: 700, color: r.cplColor }}>{r.metaCpl}</div>
-              <div className="r" style={{ fontWeight: 800, color: r.qcplColor }}>{r.qCpl}</div>
-              <div className="r" style={{ fontWeight: 800 }}>{r.saleCpl}</div>
-              <Two a={r.dup} b={r.dupPct} c={r.dupColor} bold />
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
-                {r.isOff && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#FDECEA", color: "#A12116" }}>✕ O'chirish</span>}
-                {r.isScale && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#E4F5EA", color: "#05603A" }}>↗ Kuchaytirish</span>}
-                {r.isWatch && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#FEF3C7", color: "#8A4B08" }}>◉ Kuzatish</span>}
-                {r.trust && <span style={{ fontSize: 12, fontWeight: 600, color: "#8A4B08" }}>{r.trust}</span>}
-              </div>
-            </div>
-          ))}
-        </StickyTable>
+        <ResultsTable rows={v.rows} nameHeader={v.nameHeader} headers={{ spend: v.spendHeader, revenue: v.revenueHeader || "Daromad, so'm" }} slug={sel.slug} layout={cols} canSave={storeReady()} />
         {v.hidden.show && <HiddenSales h={v.hidden} />}
       </div>
 

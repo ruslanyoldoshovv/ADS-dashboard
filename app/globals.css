@@ -15,22 +15,46 @@ a { color: inherit; text-decoration: none; }
 .pill { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .h2 { font-size: 18px; font-weight: 700; }
 .muted { font-size: 13px; color: #566573; }
-.tbl { --cols: minmax(220px, 1fr) 72px 44px 92px 66px 70px 76px 44px 44px 58px 92px 48px 60px 66px 66px 50px 118px;
-  display: grid; grid-template-columns: var(--cols); gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid #E9EEF2; font-variant-numeric: tabular-nums; }
+.r { text-align: right; }
+.tbl { display: grid; grid-template-columns: var(--cols); gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid #E9EEF2; font-variant-numeric: tabular-nums; }
 .tbl.head { background: #F3F5F7; color: #566573; font-size: 11px; line-height: 1.25; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding: 10px 16px; border-top: 0; align-items: end; }
 .tbl .sticky { position: sticky; left: 0; z-index: 1; background: inherit; min-width: 0; overflow-wrap: anywhere; }
-.tblin { min-width: 1446px; }
 /* Jadval: sarlavha sahifa aylantirilganda tepada qadalib turadi (jadval tugaguncha) */
-.tblcard { background: #FFFFFF; border: 1px solid #E2E8EE; border-radius: 16px; overflow: clip; }
+.tblcard { --namecol: minmax(220px, 1fr); --namew: 220px; background: #FFFFFF; border: 1px solid #E2E8EE; border-radius: 16px; overflow: clip; }
 .tblhead { position: sticky; top: 0; z-index: 6; overflow: hidden; background: #F3F5F7; border-bottom: 1px solid #E2E8EE; }
 .tblbody { overflow-x: auto; }
+.sorth { all: unset; cursor: pointer; display: block; text-transform: inherit; letter-spacing: inherit; font: inherit; font-weight: 700; color: inherit; min-height: 28px; display: flex; align-items: flex-end; }
+.sorth.r { justify-content: flex-end; text-align: right; }
+.sorth:hover { color: #14212B; }
+.sorth:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 2px; border-radius: 4px; }
+.sarr { color: #1D4ED8; white-space: pre; }
+/* Ustunlar sozlamasi */
+.colbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 24px 12px; }
+.colbtn { min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #E2E8EE; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 700; color: #14212B; cursor: pointer; }
+.colpanel { margin: 0 24px 16px; padding: 14px; border: 1px solid #E2E8EE; border-radius: 12px; background: #FAFBFC; display: flex; flex-direction: column; gap: 10px; max-width: 460px; }
+.colitem { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E9EEF2; font-size: 14px; }
+.colitem .grip { cursor: grab; color: #9AA8B5; letter-spacing: -2px; }
+.colitem .arr { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #E2E8EE; background: #FFFFFF; cursor: pointer; font-size: 15px; }
+.colitem .arr:disabled { opacity: 0.35; cursor: default; }
+/* Reklama faolligi belgisi */
+.act { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+.act .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; flex: 0 0 auto; }
+.act-green .dot { background: #12B76A; box-shadow: 0 0 0 0 rgba(18, 183, 106, 0.6); animation: pulse 1.8s infinite; }
+.act-yellow .dot { background: #F5B70A; }
+.act-grey .dot { background: #B5C0CA; }
+.act-red .dot { background: #D92D20; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(18, 183, 106, 0.55); } 70% { box-shadow: 0 0 0 7px rgba(18, 183, 106, 0); } 100% { box-shadow: 0 0 0 0 rgba(18, 183, 106, 0); } }
+@media (prefers-reduced-motion: reduce) { .act-green .dot { animation: none; } }
+/* Grafik */
+.ctog { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.ctip { position: absolute; top: 34px; width: 196px; padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #E2E8EE; box-shadow: 0 8px 24px rgba(20, 33, 43, 0.14); pointer-events: none; z-index: 5; display: flex; flex-direction: column; gap: 3px; }
 @media (max-width: 720px) {
-  .tbl { --cols: 160px 72px 44px 92px 66px 70px 76px 44px 44px 58px 92px 48px 60px 66px 66px 50px 118px; padding-left: 12px; padding-right: 12px; }
-  .tblin { min-width: 1378px; }
+  .tblcard { --namecol: 160px; --namew: 160px; }
+  .tbl { padding-left: 12px; padding-right: 12px; }
   .tbl .sticky { box-shadow: 6px 0 8px -6px rgba(20, 33, 43, 0.25); padding-right: 6px; }
+  .colbar { padding: 0 16px 12px; }
+  .colpanel { margin: 0 16px 16px; }
 }
-.r { text-align: right; }
-
 /* Sana va oylik reja tugmalari: bosilganda ochiladigan oyna */
 .pop { position: relative; }
 .pop > summary, .fold > summary { list-style: none; cursor: pointer; }
