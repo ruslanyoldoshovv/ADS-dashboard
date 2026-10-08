@@ -7,6 +7,7 @@ import { getPlans, planEntry } from "../lib/store";
 import { buildDailyPlan, monthKey } from "../lib/plan";
 import { resolveRange, PRESETS } from "../lib/range";
 import { savePlan } from "./actions";
+import StickyTable from "./StickyTable";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // amoCRM'dan ko'p lid o'qilganda vaqt yetishi uchun
@@ -14,17 +15,18 @@ export const maxDuration = 60; // amoCRM'dan ko'p lid o'qilganda vaqt yetishi uc
 const DOW = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
 const COL = { red: "#A12116", amber: "#8A4B08", green: "#05603A" };
 
-// rq: davr parametri, masalan "r=month" yoki "from=2026-09-01&to=2026-09-30"
-function href(slug, rq, by) { return `/?p=${slug}&${rq}&by=${by}`; }
+// rq: davr parametri, masalan "r=month" yoki "from=2026-09-01&to=2026-09-30". sm: sotuv hisobi ("pay" = to'lov sanasi bo'yicha)
+function href(slug, rq, by, sm) { return `/?p=${slug}&${rq}&by=${by}` + (sm === "pay" ? "&sm=pay" : ""); }
 
-async function loadAll(range, bySel, selSlug, now, plans, rate) {
+async function loadAll(range, bySel, selSlug, now, plans, rate, sm) {
   const isCur = range.planMonth.y === now.y && range.planMonth.m === now.m;
   return Promise.all(cfg.projects.map(async (p) => {
     try {
       // Tanlangan davr oyi uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
       const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
       const todayPlan = isCur ? plan : buildDailyPlan(p, now, planEntry(plans, p, monthKey(now, 0)));
-      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate });
+      // Sotuv hisobi rejimi faqat tanlangan loyihaga qo'llanadi (qolganlari uchun ortiqcha so'rov yuborilmaydi)
+      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead" });
       const view = buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan, planMonth: range.planMonth, showToday: range.includesToday });
       return { p, view, D, error: null };
     } catch (e) {
@@ -36,11 +38,12 @@ async function loadAll(range, bySel, selSlug, now, plans, rate) {
 export default async function Page({ searchParams }) {
   const sp = searchParams || {};
   const by = ["ad", "campaign", "adset"].includes(sp.by) ? sp.by : "ad";
+  const sm = sp.sm === "pay" ? "pay" : "lead";
   const sel = cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0];
   const now = tashkentNow(cfg);
   const range = resolveRange(sp, now);
   const [plans, rate] = await Promise.all([getPlans(), getUsdRate(cfg)]);
-  const all = await loadAll(range, by, sel.slug, now, plans, rate);
+  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
 
@@ -98,7 +101,8 @@ export default async function Page({ searchParams }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
-          <DatePicker range={range} sel={sel} by={by} />
+          <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />
+          <DatePicker range={range} sel={sel} by={by} sm={sm} />
           <PlanForm f={planForm} sel={sel} by={by} range={range} />
         </div>
       </div>
@@ -116,13 +120,13 @@ export default async function Page({ searchParams }) {
         </div>
       )}
 
-      {v && <Body v={v} sel={sel} rq={range.query} by={by} />}
+      {v && <Body v={v} sel={sel} rq={range.query} by={by} sm={sm} />}
     </div>
   );
 }
 
 // Sana tanlash: tayyor davrlar yoki kalendar orqali ixtiyoriy oraliq
-function DatePicker({ range, sel, by }) {
+function DatePicker({ range, sel, by, sm }) {
   const cap = { fontSize: 12, fontWeight: 700, color: "#566573", letterSpacing: "0.03em", textTransform: "uppercase" };
   const lab = { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 700, color: "#566573" };
   return (
@@ -138,13 +142,14 @@ function DatePicker({ range, sel, by }) {
         <div style={cap}>Tayyor davrlar</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
           {PRESETS.map(([k, l]) => (
-            <Link key={k} href={href(sel.slug, "r=" + k, by)} className="chip" aria-current={range.preset === k ? "true" : undefined}>{l}</Link>
+            <Link key={k} href={href(sel.slug, "r=" + k, by, sm)} className="chip" aria-current={range.preset === k ? "true" : undefined}>{l}</Link>
           ))}
         </div>
         <div style={cap}>Sana oralig'i</div>
         <form method="get" action="/" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <input type="hidden" name="p" value={sel.slug} />
           <input type="hidden" name="by" value={by} />
+          {sm === "pay" && <input type="hidden" name="sm" value="pay" />}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
             <label style={lab}>Boshlanishi
               <input className="field" type="date" name="from" defaultValue={range.fromStr} max={range.todayStr} required />
@@ -158,6 +163,19 @@ function DatePicker({ range, sel, by }) {
         <div className="muted">Bir martada eng ko'pi 92 kun. Oylik reja davr tugagan oy bo'yicha ko'rsatiladi.</div>
       </div>
     </details>
+  );
+}
+
+// Sotuv hisobi: lid sanasi bo'yicha (standart) yoki to'lov sanasi bo'yicha
+function SaleMode({ sel, rq, by, sm }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#566573" }}>Sotuv hisobi</span>
+      <div className="seg" role="group" aria-label="Sotuv hisobi">
+        <Link href={href(sel.slug, rq, by, "lead")} aria-current={sm !== "pay" ? "true" : undefined}>Lid sanasi bo'yicha</Link>
+        <Link href={href(sel.slug, rq, by, "pay")} aria-current={sm === "pay" ? "true" : undefined}>To'lov sanasi bo'yicha</Link>
+      </div>
+    </div>
   );
 }
 
@@ -202,7 +220,7 @@ function PlanForm({ f, sel, by, range }) {
   );
 }
 
-function Body({ v, sel, rq, by }) {
+function Body({ v, sel, rq, by, sm }) {
   return (
     <>
       {/* Bugun: faqat tanlangan davr bugunni o'z ichiga olganda */}
@@ -374,54 +392,55 @@ function Body({ v, sel, rq, by }) {
       </div>
 
       {/* Jadval */}
-      <div style={{ background: "#FFFFFF", border: "1px solid #E2E8EE", borderRadius: 16, overflow: "hidden" }}>
+      <div className="tblcard">
         <div style={{ padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <h2 className="h2">{v.tableTitle}</h2>
             <div className="muted">Qizil raqam: chegaradan oshgan yoki past ko'rsatkich. Sifatli lid = "Ma'lumot berildi" va undan keyingi bosqichga o'tgan lid</div>
+            <div className="muted" style={{ color: v.saleMode === "pay" ? "#5B21B6" : undefined }}>{v.saleModeNote}</div>
           </div>
           <div className="seg soft" role="group" aria-label="Guruhlash">
             {[["ad", "Kreativ"], ["campaign", "Kampaniya"], ["adset", "Ad set"]].map(([k, l]) => (
-              <Link key={k} href={href(sel.slug, rq, k)} aria-current={k === by ? "true" : undefined}>{l}</Link>
+              <Link key={k} href={href(sel.slug, rq, k, sm)} aria-current={k === by ? "true" : undefined}>{l}</Link>
             ))}
           </div>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <div style={{ minWidth: 1860 }}>
-            <div className="tbl head">
-              <div className="sticky">{v.nameHeader}</div><div className="r">{v.spendHeader}</div><div className="r">Lid</div><div>Sifatli</div><div className="r">Nedozvon</div><div className="r">Jarayonda</div><div className="r">Yo'qotilgan</div><div className="r">Keldi</div><div className="r">Sotuv</div><div className="r">Lid → sotuv</div><div className="r">{v.revenueHeader || "Daromad, so'm"}</div><div className="r">ROAS</div><div className="r">Meta CPL</div><div className="r">Sifatli lid narxi</div><div className="r">Sotuv narxi</div><div className="r">Dubl</div><div>Tavsiya</div>
-            </div>
-            {v.rows.map((r, i) => (
-              <div key={i} className="tbl" style={{ background: r.rowBg }}>
-                <div className="sticky" style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontWeight: 700 }}>{r.name}</span><span className="muted">{r.sub}</span></div>
-                <div className="r">{r.spend}</div>
-                <div className="r" style={{ fontWeight: 700 }}>{r.leads}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span style={{ color: r.goodColor }}><b>{r.goodPct}</b> · {r.good}</span>
-                  <div style={{ height: 8, borderRadius: 999, background: "#E6EBEF", overflow: "hidden" }}><div style={{ height: 8, borderRadius: 999, width: r.goodPct, background: r.barColor }} /></div>
-                </div>
-                <Two a={r.noAns} b={r.noAnsPct} c={r.noAnsColor} bold />
-                <Two a={r.inProg} b={r.inProgPct} c="#566573" />
-                <Two a={r.lost} b={r.lostPct} c="#566573" />
-                <div className="r">{r.visits}</div>
-                <div className="r" style={{ fontWeight: 700 }}>{r.sales}</div>
-                <div className="r" style={{ fontWeight: 700, color: r.crColor }}>{r.cr}</div>
-                <div className="r">{r.revenue}</div>
-                <div className="r" style={{ fontWeight: 800, color: r.roasColor }}>{r.roas}</div>
-                <div className="r" style={{ fontWeight: 700, color: r.cplColor }}>{r.metaCpl}</div>
-                <div className="r" style={{ fontWeight: 800, color: r.qcplColor }}>{r.qCpl}</div>
-                <div className="r" style={{ fontWeight: 800 }}>{r.saleCpl}</div>
-                <Two a={r.dup} b={r.dupPct} c={r.dupColor} bold />
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
-                  {r.isOff && <span className="pill" style={{ minHeight: 30, padding: "0 12px", fontSize: 13, background: "#FDECEA", color: "#A12116" }}>✕ O'chirish</span>}
-                  {r.isScale && <span className="pill" style={{ minHeight: 30, padding: "0 12px", fontSize: 13, background: "#E4F5EA", color: "#05603A" }}>↗ Kuchaytirish</span>}
-                  {r.isWatch && <span className="pill" style={{ minHeight: 30, padding: "0 12px", fontSize: 13, background: "#FEF3C7", color: "#8A4B08" }}>◉ Kuzatish</span>}
-                  {r.trust && <span style={{ fontSize: 12, fontWeight: 600, color: "#8A4B08" }}>{r.trust}</span>}
-                </div>
+        <StickyTable head={
+          <div className="tbl head">
+            <div className="sticky">{v.nameHeader}</div><div className="r">{v.spendHeader}</div><div className="r">Lid</div><div>Sifatli</div><div className="r">Nedozvon</div><div className="r">Jarayonda</div><div className="r">Yo'qotilgan</div><div className="r">Keldi</div><div className="r">Sotuv</div><div className="r">Lid → sotuv</div><div className="r">{v.revenueHeader || "Daromad, so'm"}</div><div className="r">ROAS</div><div className="r">Meta CPL</div><div className="r">Sifatli lid narxi</div><div className="r">Sotuv narxi</div><div className="r">Dubl</div><div>Tavsiya</div>
+          </div>
+        }>
+          {v.rows.map((r, i) => (
+            <div key={i} className="tbl" style={{ background: r.rowBg }}>
+              <div className="sticky" style={{ display: "flex", flexDirection: "column", gap: 2 }}><span style={{ fontWeight: 700 }}>{r.name}</span><span className="muted">{r.sub}</span></div>
+              <div className="r">{r.spend}</div>
+              <div className="r" style={{ fontWeight: 700 }}>{r.leads}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ color: r.goodColor, whiteSpace: "nowrap" }}><b>{r.goodPct}</b> · {r.good}</span>
+                <div style={{ height: 8, borderRadius: 999, background: "#E6EBEF", overflow: "hidden" }}><div style={{ height: 8, borderRadius: 999, width: r.goodPct, background: r.barColor }} /></div>
               </div>
-            ))}
-          </div>
-        </div>
+              <Two a={r.noAns} b={r.noAnsPct} c={r.noAnsColor} bold />
+              <Two a={r.inProg} b={r.inProgPct} c="#566573" />
+              <Two a={r.lost} b={r.lostPct} c="#566573" />
+              <div className="r">{r.visits}</div>
+              <div className="r" style={{ fontWeight: 700 }}>{r.sales}</div>
+              <div className="r" style={{ fontWeight: 700, color: r.crColor }}>{r.cr}</div>
+              <div className="r">{r.revenue}</div>
+              <div className="r" style={{ fontWeight: 800, color: r.roasColor }}>{r.roas}</div>
+              <div className="r" style={{ fontWeight: 700, color: r.cplColor }}>{r.metaCpl}</div>
+              <div className="r" style={{ fontWeight: 800, color: r.qcplColor }}>{r.qCpl}</div>
+              <div className="r" style={{ fontWeight: 800 }}>{r.saleCpl}</div>
+              <Two a={r.dup} b={r.dupPct} c={r.dupColor} bold />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                {r.isOff && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#FDECEA", color: "#A12116" }}>✕ O'chirish</span>}
+                {r.isScale && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#E4F5EA", color: "#05603A" }}>↗ Kuchaytirish</span>}
+                {r.isWatch && <span className="pill" style={{ minHeight: 28, padding: "0 10px", fontSize: 12, background: "#FEF3C7", color: "#8A4B08" }}>◉ Kuzatish</span>}
+                {r.trust && <span style={{ fontSize: 12, fontWeight: 600, color: "#8A4B08" }}>{r.trust}</span>}
+              </div>
+            </div>
+          ))}
+        </StickyTable>
+        {v.hidden.show && <HiddenSales h={v.hidden} />}
       </div>
 
       {/* Sabablar + operatorlar */}
@@ -442,12 +461,12 @@ function Body({ v, sel, rq, by }) {
         </div>
 
         <div className="card">
-          <div><h2 className="h2">Operatorlar</h2><div className="muted">{v.opAvg == null ? "Birinchi javob vaqti keyingi bosqichda ulanadi" : "O'rtacha birinchi javob vaqti: " + v.opAvg + " daqiqa"}</div></div>
+          <div><h2 className="h2">Operatorlar</h2><div className="muted">{(v.opAvg == null ? "" : "O'rtacha birinchi javob vaqti: " + v.opAvg + " daqiqa. ") + "Taklif qilindi: shu davrda tushib, hozir shu bosqichda turgan lidlar." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
           <div style={{ overflowX: "auto" }}>
-            <div style={{ minWidth: 440 }}>
-              <OpRow head cells={["Operator", "Lid", "Sifatli", "Keldi", "Javob vaqti"]} />
+            <div style={{ minWidth: 500 }}>
+              <OpRow head cells={["Operator", "Javob vaqti", "Lid", "Sifatli", "Taklif qilindi", "Keldi", "Sotuv"]} />
               {v.operators.map((o) => (
-                <OpRow key={o.name} cells={[<b key="n">{o.name}</b>, o.leads, <span key="g"><b>{o.goodPct}</b> · {o.good}</span>, o.visits, <span key="r" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>{o.isSlow && <span className="pill" style={{ background: "#FDECEA", color: "#A12116", minHeight: 24 }}>Sekin</span>}<b>{o.reply}</b></span>]} />
+                <OpRow key={o.name} cells={[<b key="n">{o.name}</b>, <span key="r" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{o.isSlow && <span className="pill" style={{ background: "#FDECEA", color: "#A12116", minHeight: 22 }}>Sekin</span>}<b>{o.reply}</b></span>, o.leads, <span key="g" style={{ whiteSpace: "nowrap" }}><b>{o.goodPct}</b> · {o.good}</span>, o.offer, o.visits, <b key="s">{o.sales}</b>]} />
               ))}
             </div>
           </div>
@@ -470,6 +489,30 @@ function Body({ v, sel, rq, by }) {
   );
 }
 
+// 2-rejim: oldingi davr reklamalaridan kelgan sotuvlar. Standart yopiq, bosilganda ochiladi; jadval jamisiga qo'shilmaydi.
+function HiddenSales({ h }) {
+  return (
+    <details className="fold hidsale">
+      <summary>
+        <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontWeight: 800 }}>Oldingi davr reklamalari sotuvi ({h.count} ta)</span>
+          <span style={{ fontSize: 12 }}>Shu davrda sarfi bo'lmagan reklamalardan kelgan lidlar to'lovi. Jadval jamisiga kirmaydi, yuqoridagi umumiy kartochkalarga kiradi.</span>
+        </span>
+        <span className="muted foldhint" />
+      </summary>
+      {h.rows.length === 0 ? <div style={{ padding: "8px 0", fontSize: 14 }}>Bu davrda bunday sotuv yo'q.</div> : (
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
+          <div className="hidrow head"><div>Reklama</div><div>Lid tushgan</div><div className="r">Sotuv</div><div className="r">Daromad, so'm</div></div>
+          {h.rows.map((r, i) => (
+            <div key={i} className="hidrow"><div style={{ display: "flex", flexDirection: "column" }}><b>{r.name}</b><span style={{ fontSize: 12 }}>{r.sub}</span></div><div>{r.leadFrom}</div><div className="r"><b>{r.sales}</b></div><div className="r">{r.revenue}</div></div>
+          ))}
+          <div className="hidrow total"><div>Jami</div><div /><div className="r">{h.count}</div><div className="r">{h.revenue}</div></div>
+        </div>
+      )}
+    </details>
+  );
+}
+
 function Tile({ t, v, s, bg, ink }) {
   return (
     <div style={{ padding: "12px 14px", borderRadius: 12, background: bg || "#F3F5F7" }}>
@@ -487,7 +530,7 @@ function Two({ a, b, c, bold }) {
 }
 function OpRow({ cells, head }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 1.4fr) 56px 90px 56px 130px", gap: 12, alignItems: "center", padding: head ? "8px 0" : "12px 0", borderTop: head ? 0 : "1px solid #E9EEF2", fontVariantNumeric: "tabular-nums", color: head ? "#566573" : undefined, fontSize: head ? 12 : undefined, fontWeight: head ? 700 : undefined, textTransform: head ? "uppercase" : undefined, letterSpacing: head ? "0.03em" : undefined }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(96px, 1.3fr) 80px 40px 76px 62px 44px 44px", gap: 8, alignItems: "center", padding: head ? "8px 0" : "12px 0", borderTop: head ? 0 : "1px solid #E9EEF2", fontVariantNumeric: "tabular-nums", color: head ? "#566573" : undefined, fontSize: head ? 12 : undefined, fontWeight: head ? 700 : undefined, textTransform: head ? "uppercase" : undefined, letterSpacing: head ? "0.03em" : undefined }}>
       {cells.map((c, i) => <div key={i} style={{ textAlign: i === 0 ? "left" : "right" }}>{c}</div>)}
     </div>
   );
