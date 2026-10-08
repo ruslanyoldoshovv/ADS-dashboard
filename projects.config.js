@@ -60,7 +60,7 @@ module.exports = {
       },
       // LOST qilingan lidning sifati shu maydon qiymatiga qarab aniqlanadi.
       // good: sifatli deb sanaladigan qiymatlar. bad: sifatsiz deb sanaladigan qiymatlar.
-      // Maydon bo'sh yoki ro'yxatda yo'q qiymat bo'lsa: lid "Ma'lumot berildi" yoki "Taklif qilindi" bosqichiga yetgan bo'lsa sifatli, aks holda sifatsiz.
+      // LOST lid sifati FAQAT shu maydonga qarab aniqlanadi (maydon amoCRM'da majburiy). Bo'sh bo'lsa sifatsiz deb olinadi.
       lostQuality: { field: "Lid sifati", good: ["Sifatli"], bad: ["Sifatsiz"] },
       // Daromad hisobi: 1-oy daromadi = reklamadan kelgan sotuv soni × avgCheck (so'm). LTV = 1-oy daromadi × ltvMultiplier.
       avgCheck: 1850000,
@@ -87,9 +87,8 @@ module.exports = {
       // Umumiy ko'rsatkichlar (sifatli lid narxi va ulushi, sotuv narxi, daromad, ROAS, LTV) barcha lidlar bo'yicha chiqadi.
       // Jadvaldagi har bir reklama qatorida doim faqat shu reklamaga bog'langan lidlar sanaladi.
       callsFromAds: true,
-      // Sifatli ulush nimaga nisbatan hisoblanadi: "processed" = faqat qayta ishlangan lidlarga (sifatli + sifatsiz),
-      // jarayondagi lidlar hisobga kirmaydi. "all" = hamma lidlarga.
-      qualityShareBy: "processed",
+      // To'lov sanasi maydoni ("Sotuv hisobi: To'lov sanasi bo'yicha" rejimi uchun). Bo'sh bo'lsa lid Чек bosqichiga o'tgan sana olinadi.
+      payDateField: "To'lov sanasi",
       // Oylik reja PANELNING O'ZIDA kiritiladi ("Oylik reja" tugmasi) va kunlarga avtomatik bo'linadi.
       // Quyidagi qiymat faqat panelda shu oy uchun reja kiritilmagan bo'lsa ishlatiladigan standart reja (0 = standart reja yo'q).
       plan: { weekday: 0, sunday: 0, overrides: {} }
