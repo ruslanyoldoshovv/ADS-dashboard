@@ -9,6 +9,7 @@ import { resolveRange, PRESETS } from "../lib/range";
 import { savePlan } from "./actions";
 import ResultsTable from "./ResultsTable";
 import Chart from "./Chart";
+import ScheduleEditor from "./ScheduleEditor";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // amoCRM'dan ko'p lid o'qilganda vaqt yetishi uchun
@@ -431,7 +432,7 @@ function Body({ v, sel, rq, by, sm, cols }) {
         </div>
 
         <div className="card">
-          <div><h2 className="h2">Operatorlar</h2><div className="muted">{(v.opAvg == null ? "" : "O'rtacha birinchi javob vaqti: " + v.opAvg + " daqiqa. ") + "Taklif qilindi: shu davrda tushib, hozir shu bosqichda turgan lidlar." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
+          <div><h2 className="h2">Operatorlar</h2><div className="muted">{(v.opAvg == null ? "" : "Birinchi javob (mediana): " + v.opAvg + " daqiqa. ") + "Taklif qilindi: shu davrda tushib, hozir shu bosqichda turgan lidlar." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 500 }}>
               <OpRow head cells={["Operator", "Javob vaqti", "Lid", "Sifatli", "Taklif qilindi", "Keldi", "Sotuv"]} />
@@ -441,6 +442,7 @@ function Body({ v, sel, rq, by, sm, cols }) {
             </div>
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: "#F3F5F7", fontSize: 14, color: "#2B3A46" }}>{v.opNote}</div>
+          <ScheduleEditor slug={sel.slug} operators={v.operators.filter((o) => o.uid).map((o) => ({ uid: o.uid, name: o.name }))} />
         </div>
       </div>
 
