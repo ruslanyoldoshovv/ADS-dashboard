@@ -7,6 +7,7 @@ import cfg from "../../../../projects.config";
 import { projectEnv } from "../../../../lib/env";
 import { capiEnv, syncProject, isAdmin } from "../../../../lib/capi";
 import { lockTry, storeReady } from "../../../../lib/store";
+import { storeDays, lastDays } from "../../../../lib/reply";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,6 +22,13 @@ export async function GET(req) {
     let free = false;
     try { free = await lockTry("capi-sync", 600); } catch (e) { free = false; }
     if (!free) return Response.json({ ok: true, band: true });
+    // Avval birinchi javob vaqti: kechagi kun (va hali yakuniy bo'lmagan oldingi 2 kun), 20 soniyadan oshmasin
+    const T0 = Date.now();
+    for (const p of cfg.projects) {
+      const c = projectEnv(p);
+      if (!c.amoSub || !c.amoToken || Date.now() - T0 > 20000) continue;
+      try { await storeDays(p, lastDays(3, false), { budgetMs: 20000 - (Date.now() - T0) }); } catch (e) { /* keyingi safar */ }
+    }
     let sent = 0;
     for (const p of cfg.projects) {
       const c = projectEnv(p);
