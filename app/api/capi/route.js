@@ -2,7 +2,7 @@
 // Ko'rsatadi: sozlama to'liqmi, amoCRM'ga qo'yiladigan webhook manzili, oxirgi yuborilgan hodisalar.
 import cfg from "../../../projects.config";
 import { projectEnv } from "../../../lib/env";
-import { capiEnv, capiConf, hookKey, pingDataset } from "../../../lib/capi";
+import { capiEnv, capiConf, capiTargets, hookKey, pingDataset } from "../../../lib/capi";
 import { fetchCustomFields } from "../../../lib/amo";
 import { nkey } from "../../../lib/stages";
 import { storeReady, sentCount, logRead, hookRead } from "../../../lib/store";
@@ -27,6 +27,10 @@ export async function GET(req) {
   if (env.ok) {
     try { out.dataset = { ok: true, nomi: await pingDataset(env) }; } catch (e) { out.dataset = { ok: false, sabab: String(e.message) }; }
   } else out.dataset = { ok: false, sabab: "Dataset ID yoki token kiritilmagan" };
+  // Ikkinchi dataset (bo'lsa): hodisalar unga ham yuboriladi
+  const second = capiTargets(p).find((t) => t.suffix === ":b");
+  out.ikkinchi_dataset = second ? { ["CAPI_DATASET_" + p.env + "B"]: second.env.dataset } : { izoh: "Kiritilmagan (CAPI_DATASET_" + p.env + "B va CAPI_TOKEN_" + p.env + "B)" };
+  if (second) { try { out.ikkinchi_dataset.ok = true; out.ikkinchi_dataset.nomi = await pingDataset(second.env); } catch (e) { out.ikkinchi_dataset.ok = false; out.ikkinchi_dataset.sabab = String(e.message); } }
 
   // "Meta lead ID" maydoni amoCRM'da bormi
   if (c.amoSub && c.amoToken) {
@@ -49,7 +53,7 @@ export async function GET(req) {
   if (storeReady()) {
     // Webhook diagnostikasi: amoCRM'dan nechta xabar kelgan va har biri bilan nima bo'lgan
     try { out.webhook = await hookRead(p.slug, 15); } catch (e) { out.webhook = { xato: String(e.message) }; }
-    try { out.jami_yuborilgan_hodisa = await sentCount(p.slug); out.oxirgi_yozuvlar = await logRead(p.slug, 30); }
+    try { out.jami_yuborilgan_hodisa = await sentCount(p.slug); if (second) out.ikkinchi_dataset.yuborilgan_hodisa = await sentCount(p.slug + ":b"); out.oxirgi_yozuvlar = await logRead(p.slug, 30); }
     catch (e) { out.jurnal_xatosi = String(e.message); }
   }
   return Response.json(out);
