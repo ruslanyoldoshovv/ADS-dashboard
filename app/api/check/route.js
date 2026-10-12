@@ -27,6 +27,13 @@ export async function GET(req) {
     out.meta = env.META_TOKEN && env.META_ACCOUNT ? { ok: true, ...(await pingMeta({ token: c.metaToken, account: c.metaAccount })) } : { ok: false, sabab: "Token yoki akkaunt ID kiritilmagan" };
   } catch (err) { out.meta = { ok: false, sabab: String(err.message) }; }
   if (out.meta.ok) out.meta.valyuta_mos = out.meta.currency === want;
+  // Bir nechta akkaunt bo'lsa: har biri alohida tekshiriladi (token shu akkauntga ruxsatli bo'lishi kerak)
+  if (c.metaToken && c.metaAccounts.length > 1) {
+    out.meta_akkauntlar = await Promise.all(c.metaAccounts.map(async (account, i) => {
+      try { return { raqam: i + 1, id: account.replace("act_", ""), ok: true, ...(await pingMeta({ token: c.metaToken, account })) }; }
+      catch (err) { return { raqam: i + 1, id: account.replace("act_", ""), ok: false, sabab: String(err.message) }; }
+    }));
+  }
   try {
     if (env.AMO_SUBDOMAIN && env.AMO_TOKEN) {
       const sub = c.amoSub, tok = c.amoToken;
