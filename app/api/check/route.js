@@ -1,6 +1,6 @@
 // Ulanishni tekshirish: /api/check?p=nexus-school  (token ko'rsatilmaydi, faqat OK yoki xato matni)
 import cfg from "../../../projects.config";
-import { pingMeta } from "../../../lib/meta";
+import { pingMeta, fetchMyAccounts } from "../../../lib/meta";
 import { pingAmo, fetchPipelines, fetchCustomFields, fetchPipelineStages } from "../../../lib/amo";
 import { projectEnv } from "../../../lib/env";
 import { getProjectData } from "../../../lib/data";
@@ -27,6 +27,8 @@ export async function GET(req) {
     out.meta = env.META_TOKEN && env.META_ACCOUNT ? { ok: true, ...(await pingMeta({ token: c.metaToken, account: c.metaAccount })) } : { ok: false, sabab: "Token yoki akkaunt ID kiritilmagan" };
   } catch (err) { out.meta = { ok: false, sabab: String(err.message) }; }
   if (out.meta.ok) out.meta.valyuta_mos = out.meta.currency === want;
+  // Akkaunt o'qilmasa: token qaysi akkauntlarni ko'ra olishini ko'rsatish (ID'ni solishtirish uchun)
+  else if (c.metaToken) { try { out.meta.token_koradigan_akkauntlar = await fetchMyAccounts({ token: c.metaToken }); } catch (e) { out.meta.token_xatosi = String(e.message || e).slice(0, 200); } }
   // Bir nechta akkaunt bo'lsa: har biri alohida tekshiriladi (token shu akkauntga ruxsatli bo'lishi kerak)
   if (c.metaToken && c.metaAccounts.length > 1) {
     out.meta_akkauntlar = await Promise.all(c.metaAccounts.map(async (account, i) => {
