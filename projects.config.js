@@ -21,7 +21,7 @@ const STAGES = {
 
 // Lost sababi nomida shu so'zlar bo'lsa, tegishli guruhga tushadi (kichik harfda yozing)
 const REASON_WORDS = {
-  noAnswer: ["ko'tarmadi", "kotarmadi", "nedozvon", "недозвон", "не взял"],
+  noAnswer: ["ko'tarmadi", "kotarmadi", "nedozvon", "недозвон", "недазвон", "не взял"],
   duplicate: ["takror", "dubl", "дубл"]
 };
 
@@ -105,14 +105,43 @@ module.exports = {
       plan: { weekday: 14, sunday: 8, overrides: {} }
     },
     {
+      // Bitrix24 loyihasi (marva.bitrix24.kz). Vercel: BITRIX_WEBHOOK_P3 (maxfiy), META_ACCOUNT_P3.
+      // Meta tokeni alohida kiritilmagan bo'lsa Nexus tokeni (META_TOKEN_P1) ishlatiladi.
       slug: "loyiha-3",
-      short: "Loyiha 3",
+      short: "Marva",
       niche: "Wellness mahsulot",
-      name: "Loyiha 3 · Wellness mahsulot",
+      name: "Marva · Wellness mahsulot",
       env: "P3",
-      currency: "UZS",
-      thresholds: { cpl: 35000, qcpl: 70000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 40, reply: 60, roas: 1.5, noAns: 0.3 },
-      plan: { weekday: 32, sunday: 20, overrides: {} }
+      crm: "bitrix",
+      metaTokenFrom: "P1",
+      currency: "USD",
+      hideOperators: true, // sotuvchilar bo'limi ko'rsatilmaydi
+      // Bitrix24 sozlamasi: lid = "CALL-ЦЕНТР" voronkasidagi (ID 0) sdelka
+      bitrix: {
+        categories: [0],
+        sourceField: "UF_CRM_1678555479910",          // "Каердан эшитди мижоз"
+        adSourceValues: ["Target"],                    // UTM bo'lmasa ham reklama lidi deb sanaladigan qiymatlar
+        badStages: ["Дубль", "БРАК НОМЕР", "НЕГАТИВ", "НЕДАЗВОН"], // doim sifatsiz
+        lostStages: ["ОТКАЗ"],                          // rad etgan (sifati oldingi bosqichlarga qarab)
+        returnStages: ["ВОЗВРАТ", "ЗАКАЗ НЕ ДОСТАВЛЕНО"] // qaytgan buyurtma: sotuv hisoblanmaydi
+      },
+      // Lid qaysi reklamadan: UTM'dagi reklama ID'si bo'yicha (utm_content = ad ID, utm_term = ad set ID, utm_campaign = kampaniya ID)
+      source: { by: "fields", ad: ["utm_content"], adset: ["utm_term"], campaign: ["utm_campaign"] },
+      stages: {
+        contacted: [],
+        info: ["QUAL LEAD", "ДУМКА", "ПЕРЕЗВОНИТЬ"],   // sifatli lid
+        offer: [],
+        visit: [],
+        visitPipelines: [],
+        // Sotuv (buyurtma): ЗАКАЗ ПРИНЯТ va undan keyingi bosqichlar
+        sale: ["ЗАКАЗ ПРИНЯТ", "ЗАКАЗ ПОДТВЕРЖДЕН", "ЛОГИСТИКА", "МОЙ СКЛАД", "ЗАКАЗ ДОСТАВЛЕН"]
+      },
+      ignorePipelines: [],
+      callsFromAds: false,
+      planBy: "leads",
+      // Vaqtinchalik chegaralar ($): haqiqiy 30 kunlik natija ko'rilgach moslanadi
+      thresholds: { cpl: 2, qcpl: 4, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 40, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
     }
   ]
 };
