@@ -3,6 +3,8 @@
 // Panelning asosiy sana tanlagichiga bog'liq emas: faqat grafik yuklanadi.
 import cfg from "../../../projects.config";
 import { getChartData } from "../../../lib/data";
+import { accCookie } from "../../../lib/env";
+import { cookies } from "next/headers";
 import { tashkentNow } from "../../../lib/calc";
 import { getPlans, planEntry } from "../../../lib/store";
 import { buildDailyPlan } from "../../../lib/plan";
@@ -41,7 +43,7 @@ export async function GET(req) {
   try {
     // Kelajak kunlar uchun ma'lumot so'ralmaydi, lekin o'q (va reja chizig'i) butun davr bo'ylab chiziladi
     const until = sel.to < todayStr ? sel.to : todayStr;
-    const [data, plans] = await Promise.all([sel.from <= todayStr ? getChartData(p, sel.from, until) : { days: [] }, getPlans()]);
+    const [data, plans] = await Promise.all([sel.from <= todayStr ? getChartData(p, sel.from, until, (cookies().get(accCookie(p.slug)) || {}).value) : { days: [] }, getPlans()]);
     const got = {}; (data.days || []).forEach((x) => { got[x.d] = x; });
     const planCache = {};
     const planOf = (d) => {
