@@ -1,6 +1,9 @@
 import Link from "next/link";
 import cfg from "../projects.config";
-import { getProjectData } from "../lib/data";
+import { getProjectData, accountList } from "../lib/data";
+import { accCookie } from "../lib/env";
+import { cookies } from "next/headers";
+import AccountPicker from "./AccountPicker";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
 import { getPlans, planEntry, colsRead, storeReady } from "../lib/store";
@@ -20,7 +23,7 @@ const COL = { red: "#A12116", amber: "#8A4B08", green: "#05603A" };
 // rq: davr parametri, masalan "r=month" yoki "from=2026-09-01&to=2026-09-30". sm: sotuv hisobi ("pay" = to'lov sanasi bo'yicha)
 function href(slug, rq, by, sm) { return `/?p=${slug}&${rq}&by=${by}` + (sm === "pay" ? "&sm=pay" : ""); }
 
-async function loadAll(range, bySel, selSlug, now, plans, rate, sm) {
+async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw) {
   const isCur = range.planMonth.y === now.y && range.planMonth.m === now.m;
   return Promise.all(cfg.projects.map(async (p) => {
     try {
@@ -28,7 +31,7 @@ async function loadAll(range, bySel, selSlug, now, plans, rate, sm) {
       const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
       const todayPlan = isCur ? plan : buildDailyPlan(p, now, planEntry(plans, p, monthKey(now, 0)));
       // Sotuv hisobi rejimi faqat tanlangan loyihaga qo'llanadi (qolganlari uchun ortiqcha so'rov yuborilmaydi)
-      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead" });
+      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead", accounts: p.slug === selSlug ? accRaw : "" });
       const view = buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan, planMonth: range.planMonth, showToday: range.includesToday });
       return { p, view, D, error: null };
     } catch (e) {
@@ -44,8 +47,10 @@ export default async function Page({ searchParams }) {
   const sel = cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0];
   const now = tashkentNow(cfg);
   const range = resolveRange(sp, now);
-  const [plans, rate, cols] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null]);
-  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm);
+  // Reklama akkauntlari tanlovi (bir nechta akkaunt bo'lsa): cookie'da saqlanadi, bo'sh bo'lsa hammasi
+  const accRaw = (cookies().get(accCookie(sel.slug)) || {}).value || "";
+  const [plans, rate, cols, accs] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null, accountList(sel).catch(() => [])]);
+  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
 
@@ -103,6 +108,7 @@ export default async function Page({ searchParams }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
+          {accs.length > 1 && <AccountPicker slug={sel.slug} cookie={accCookie(sel.slug)} list={accs} selected={cur.D && cur.D.diag && cur.D.diag.akkauntlar ? cur.D.diag.akkauntlar : accs.map((a) => a.id)} />}
           <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />
           <DatePicker range={range} sel={sel} by={by} sm={sm} />
           <PlanForm f={planForm} sel={sel} by={by} range={range} />
@@ -113,6 +119,12 @@ export default async function Page({ searchParams }) {
       {planForm.saved === planForm.ym && planForm.n && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Saqlandi: {planForm.label} uchun oylik reja {planForm.n} {planForm.unit}.</div>}
       {planForm.err && ERR[planForm.err] && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, fontWeight: 600 }}>{ERR[planForm.err]}</div>}
       {planForm.storeError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Saqlangan rejalar o'qilmadi ({planForm.storeError}). Hozircha standart reja ko'rsatilmoqda.</div>}
+
+      {cur.D && cur.D.accErrors && cur.D.accErrors.length > 0 && (
+        <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13 }}>
+          {cur.D.accErrors.map((x) => <div key={x.akkaunt}><b>{x.raqam}-akkaunt ({x.akkaunt}) o'qilmadi:</b> {x.xato}. Bu akkaunt sarfi va reklamalari hisobga kirmadi.</div>)}
+        </div>
+      )}
 
       {cur.error && (
         <div className="card" style={{ borderColor: "#F0B4AC", background: "#FDF3F2" }}>
