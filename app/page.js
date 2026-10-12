@@ -109,7 +109,7 @@ export default async function Page({ searchParams }) {
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
           {accs.length > 1 && <AccountPicker slug={sel.slug} cookie={accCookie(sel.slug)} list={accs} selected={cur.D && cur.D.diag && cur.D.diag.akkauntlar ? cur.D.diag.akkauntlar : accs.map((a) => a.id)} />}
-          <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />
+          {sel.crm !== "bitrix" && <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />}
           <DatePicker range={range} sel={sel} by={by} sm={sm} />
           <PlanForm f={planForm} sel={sel} by={by} range={range} />
         </div>
@@ -443,7 +443,7 @@ function Body({ v, sel, rq, by, sm, cols }) {
           <div style={{ padding: "12px 16px", borderRadius: 12, background: "#F3F5F7", fontSize: 14, color: "#2B3A46" }}>{v.reasonsNote}</div>
         </div>
 
-        <div className="card">
+        {!sel.hideOperators && <div className="card">
           <div><h2 className="h2">Operatorlar</h2><div className="muted">{(v.opAvg == null ? "" : "Birinchi javob (mediana): " + v.opAvg + " daqiqa. ") + "Taklif qilindi: shu davrda tushib, hozir shu bosqichda turgan lidlar." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 500 }}>
@@ -455,7 +455,7 @@ function Body({ v, sel, rq, by, sm, cols }) {
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: "#F3F5F7", fontSize: 14, color: "#2B3A46" }}>{v.opNote}</div>
           <ScheduleEditor slug={sel.slug} operators={v.operators.filter((o) => o.uid).map((o) => ({ uid: o.uid, name: o.name }))} />
-        </div>
+        </div>}
       </div>
 
       {/* Qoidalar */}
