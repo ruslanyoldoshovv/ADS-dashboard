@@ -34,7 +34,8 @@ export async function GET(req) {
       catch (err) { return { raqam: i + 1, id: account.replace("act_", ""), ok: false, sabab: String(err.message) }; }
     }));
   }
-  try {
+  if (c.crm === "bitrix") out.amocrm = c.bitrix ? { ok: true, crm: "Bitrix24", tuzilma: "/api/bitrix-check?p=" + p.slug } : { ok: false, sabab: "Vercel'da BITRIX_WEBHOOK_" + p.env + " kiritilmagan" };
+  else try {
     if (env.AMO_SUBDOMAIN && env.AMO_TOKEN) {
       const sub = c.amoSub, tok = c.amoToken;
       const acc = await pingAmo(sub, tok);
