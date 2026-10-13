@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import AccountPicker from "./AccountPicker";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
-import { getPlans, planEntry, colsRead, storeReady } from "../lib/store";
+import { getPlans, planEntry, colsRead, storeReady, badgeRead, badgeWrite } from "../lib/store";
 import { buildDailyPlan, monthKey } from "../lib/plan";
 import { resolveRange, PRESETS } from "../lib/range";
 import { savePlan } from "./actions";
@@ -21,20 +21,33 @@ const DOW = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"
 const COL = { red: "#A12116", amber: "#8A4B08", green: "#05603A" };
 
 // rq: davr parametri, masalan "r=month" yoki "from=2026-09-01&to=2026-09-30". sm: sotuv hisobi ("pay" = to'lov sanasi bo'yicha)
+// Necha vaqt oldin: "5 daq", "2 soat", "3 kun"
+function agoText(at) {
+  const m = Math.max(0, Math.round((Date.now() - at) / 60000));
+  return m < 1 ? "hozir" : m < 60 ? m + " daq oldin" : m < 1440 ? Math.round(m / 60) + " soat oldin" : Math.round(m / 1440) + " kun oldin";
+}
+
 function href(slug, rq, by, sm) { return `/?p=${slug}&${rq}&by=${by}` + (sm === "pay" ? "&sm=pay" : ""); }
 
-async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw) {
+// Faqat TANLANGAN loyiha jonli yuklanadi. Boshqa loyihalar "muzlab" turadi: tabda oxirgi ochilgandagi holat ko'rinadi
+// (Meta va CRM'ga so'rov ketmaydi). Tabga o'tilganda o'sha loyiha yangilanadi.
+async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fresh) {
   const isCur = range.planMonth.y === now.y && range.planMonth.m === now.m;
+  let badges = {};
+  if (storeReady()) { try { badges = await badgeRead(); } catch (e) { badges = {}; } }
   return Promise.all(cfg.projects.map(async (p) => {
+    if (p.slug !== selSlug) return { p, view: null, D: null, error: null, frozen: badges[p.slug] || null };
     try {
       // Tanlangan davr oyi uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
       const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
       const todayPlan = isCur ? plan : buildDailyPlan(p, now, planEntry(plans, p, monthKey(now, 0)));
       // Sotuv hisobi rejimi faqat tanlangan loyihaga qo'llanadi (qolganlari uchun ortiqcha so'rov yuborilmaydi)
-      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead", accounts: p.slug === selSlug ? accRaw : "" });
+      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead", accounts: p.slug === selSlug ? accRaw : "", fresh });
       const view = buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan, planMonth: range.planMonth, showToday: range.includesToday });
+      if (storeReady()) { try { await badgeWrite(p.slug, { r: view.redCount, a: view.amberCount, e: 0, at: Date.now() }); } catch (e) { /* belgi saqlanmasa ham ishlaydi */ } }
       return { p, view, D, error: null };
     } catch (e) {
+      if (storeReady()) { try { await badgeWrite(p.slug, { r: 0, a: 0, e: 1, at: Date.now() }); } catch (x) { /* o'tkazib yuboriladi */ } }
       return { p, view: null, D: null, error: String(e.message || e) };
     }
   }));
@@ -50,7 +63,8 @@ export default async function Page({ searchParams }) {
   // Reklama akkauntlari tanlovi (bir nechta akkaunt bo'lsa): cookie'da saqlanadi, bo'sh bo'lsa hammasi
   const accRaw = (cookies().get(accCookie(sel.slug)) || {}).value || "";
   const [plans, rate, cols, accs] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null, accountList(sel).catch(() => [])]);
-  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw);
+  const fresh = sp.fresh === "1";
+  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw, fresh);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
 
@@ -76,9 +90,18 @@ export default async function Page({ searchParams }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#566573", letterSpacing: "0.04em", textTransform: "uppercase" }}>Reklama va lidlar paneli · loyihani tanlang</div>
         <nav className="tabs" aria-label="Loyihani tanlash">
-          {all.map(({ p, view, error }) => {
+          {all.map(({ p, view, error, frozen }) => {
             let pill = { bg: "#E4F5EA", ink: "#05603A", text: "Joyida" };
-            if (error) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "Ulanmagan" };
+            // Tanlanmagan loyiha: oxirgi ochilgandagi holat (muzlatilgan)
+            if (p.slug !== sel.slug) {
+              const ago = frozen ? agoText(frozen.at) : "";
+              if (!frozen) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "ochilmagan" };
+              else if (frozen.e) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "Ulanmagan" };
+              else if (frozen.r > 0) pill = { bg: "#FDECEA", ink: "#A12116", text: frozen.r + " xavf · " + ago };
+              else if (frozen.a > 0) pill = { bg: "#FEF3C7", ink: "#7A3F06", text: frozen.a + " diqqat · " + ago };
+              else pill = { bg: "#E4F5EA", ink: "#05603A", text: "Joyida · " + ago };
+            }
+            else if (error) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "Ulanmagan" };
             else if (view.redCount > 0) pill = { bg: "#FDECEA", ink: "#A12116", text: view.redCount + " xavf" };
             else if (view.amberCount > 0) pill = { bg: "#FEF3C7", ink: "#7A3F06", text: view.amberCount + " diqqat" };
             return (
@@ -99,12 +122,13 @@ export default async function Page({ searchParams }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <h1 style={{ fontSize: 28, lineHeight: 1.2, fontWeight: 800, letterSpacing: "-0.01em" }}>{sel.name}</h1>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-            <span className="muted" style={{ fontSize: 14 }}>Meta Ads + amoCRM · {range.label}</span>
+            <span className="muted" style={{ fontSize: 14 }}>Meta Ads + {sel.crm === "bitrix" ? "Bitrix24" : "amoCRM"} · {range.label}</span>
             {cur.D && (
               <span className="pill" style={{ background: cur.D.mode === "demo" ? "#E8EEF9" : "#E4F5EA", color: cur.D.mode === "demo" ? "#1D4ED8" : "#05603A" }}>
-                {cur.D.mode === "demo" ? "Namuna ma'lumotlar" : "Jonli ma'lumot"}
+                {cur.D.mode === "demo" ? "Namuna ma'lumotlar" : "Jonli ma'lumot" + (cur.D.loadedAt ? " · " + agoText(cur.D.loadedAt) : "")}
               </span>
             )}
+            {cur.D && cur.D.mode !== "demo" && <Link href={href(sel.slug, range.query, by, sm) + "&fresh=1"} className="chip" prefetch={false} title="Meta va CRM'dan hozir qayta o'qish">↻ Yangilash</Link>}
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
