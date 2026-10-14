@@ -97,8 +97,8 @@ module.exports = {
     {
       slug: "loyiha-2",
       short: "Loyiha 2",
-      niche: "Chet elda o'qish",
-      name: "Loyiha 2 · Chet elda o'qish",
+      niche: "bo'sh",
+      name: "Loyiha 2 · bo'sh",
       env: "P2",
       currency: "UZS",
       thresholds: { cpl: 150000, qcpl: 220000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 15, reply: 60, roas: 3, noAns: 0.3 },
@@ -108,9 +108,9 @@ module.exports = {
       // Bitrix24 loyihasi (marva.bitrix24.kz). Vercel: BITRIX_WEBHOOK_P3 (maxfiy), META_ACCOUNT_P3.
       // Meta tokeni alohida kiritilmagan bo'lsa Nexus tokeni (META_TOKEN_P1) ishlatiladi.
       slug: "loyiha-3",
-      short: "Marva",
+      short: "Halila.uz",
       niche: "Wellness mahsulot",
-      name: "Marva · Wellness mahsulot",
+      name: "Halila.uz · Wellness mahsulot",
       env: "P3",
       crm: "bitrix",
       metaTokenFrom: "P1",
@@ -141,6 +141,50 @@ module.exports = {
       planBy: "leads",
       // Vaqtinchalik chegaralar ($): haqiqiy 30 kunlik natija ko'rilgach moslanadi
       thresholds: { cpl: 2, qcpl: 4, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 40, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
+    },
+    {
+      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P4, META_ACCOUNT_P4 va CRM (AMO_SUBDOMAIN_P4 + AMO_TOKEN_P4 yoki BITRIX_WEBHOOK_P4) kiritiladi
+      slug: "loyiha-4",
+      short: "Loyiha 4",
+      niche: "bo'sh",
+      name: "Loyiha 4 · bo'sh",
+      env: "P4",
+      currency: "USD",
+      thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
+    },
+    {
+      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P5, META_ACCOUNT_P5 va CRM (AMO_SUBDOMAIN_P5 + AMO_TOKEN_P5 yoki BITRIX_WEBHOOK_P5) kiritiladi
+      slug: "loyiha-5",
+      short: "Loyiha 5",
+      niche: "bo'sh",
+      name: "Loyiha 5 · bo'sh",
+      env: "P5",
+      currency: "USD",
+      thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
+    },
+    {
+      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P6, META_ACCOUNT_P6 va CRM (AMO_SUBDOMAIN_P6 + AMO_TOKEN_P6 yoki BITRIX_WEBHOOK_P6) kiritiladi
+      slug: "loyiha-6",
+      short: "Loyiha 6",
+      niche: "bo'sh",
+      name: "Loyiha 6 · bo'sh",
+      env: "P6",
+      currency: "USD",
+      thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
+    },
+    {
+      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P7, META_ACCOUNT_P7 va CRM (AMO_SUBDOMAIN_P7 + AMO_TOKEN_P7 yoki BITRIX_WEBHOOK_P7) kiritiladi
+      slug: "loyiha-7",
+      short: "Loyiha 7",
+      niche: "bo'sh",
+      name: "Loyiha 7 · bo'sh",
+      env: "P7",
+      currency: "USD",
+      thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
     }
   ]
