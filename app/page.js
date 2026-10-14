@@ -1,6 +1,6 @@
 import Link from "next/link";
 import cfg from "../projects.config";
-import { getProjectData, accountList } from "../lib/data";
+import { getProjectData, accountList, projectStatus } from "../lib/data";
 import { accCookie } from "../lib/env";
 import { cookies } from "next/headers";
 import AccountPicker from "./AccountPicker";
@@ -36,7 +36,7 @@ async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fres
   let badges = {};
   if (storeReady()) { try { badges = await badgeRead(); } catch (e) { badges = {}; } }
   return Promise.all(cfg.projects.map(async (p) => {
-    if (p.slug !== selSlug) return { p, view: null, D: null, error: null, frozen: badges[p.slug] || null };
+    if (p.slug !== selSlug) return { p, view: null, D: null, error: null, frozen: badges[p.slug] || null, ready: projectStatus(p).ok };
     try {
       // Tanlangan davr oyi uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
       const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
@@ -90,12 +90,13 @@ export default async function Page({ searchParams }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#566573", letterSpacing: "0.04em", textTransform: "uppercase" }}>Reklama va lidlar paneli · loyihani tanlang</div>
         <nav className="tabs" aria-label="Loyihani tanlash">
-          {all.map(({ p, view, error, frozen }) => {
+          {all.map(({ p, view, error, frozen, ready }) => {
             let pill = { bg: "#E4F5EA", ink: "#05603A", text: "Joyida" };
             // Tanlanmagan loyiha: oxirgi ochilgandagi holat (muzlatilgan)
             if (p.slug !== sel.slug) {
               const ago = frozen ? agoText(frozen.at) : "";
-              if (!frozen) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "ochilmagan" };
+              if (!ready) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "Ulanmagan" };
+              else if (!frozen) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "ochilmagan" };
               else if (frozen.e) pill = { bg: "#E6EBEF", ink: "#2B3A46", text: "Ulanmagan" };
               else if (frozen.r > 0) pill = { bg: "#FDECEA", ink: "#A12116", text: frozen.r + " xavf · " + ago };
               else if (frozen.a > 0) pill = { bg: "#FEF3C7", ink: "#7A3F06", text: frozen.a + " diqqat · " + ago };

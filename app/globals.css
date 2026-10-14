@@ -8,6 +8,8 @@ a { color: inherit; text-decoration: none; }
 .seg.soft { background: #F3F5F7; }
 .card { background: #FFFFFF; border: 1px solid #E2E8EE; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
 .tabs { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+/* Kompyuterda loyihalar ko'p bo'lsa keyingi qatorga o'tadi; telefonda yonga suriladi */
+@media (min-width: 760px) { .tabs { flex-wrap: wrap; overflow-x: visible; gap: 10px; } }
 .tab { flex: 0 0 auto; min-height: 56px; padding: 8px 16px; border-radius: 14px; display: flex; align-items: center; gap: 14px; border: 1px solid #E2E8EE; background: #FFFFFF; color: #14212B; }
 .tab[aria-current="true"] { background: #14212B; color: #FFFFFF; border-color: #14212B; }
 .tab[aria-current="true"] .sub { color: #C8D3DC; }
