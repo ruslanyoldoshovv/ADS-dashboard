@@ -13,16 +13,22 @@ export function middleware(req) {
   const path = req.nextUrl.pathname;
   if (path === "/api/amo-webhook") return NextResponse.next();
   if (path === "/api/capi/sync" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
+  // Sotuv bo'limi rahbari (ROP): faqat /rop bo'limiga kiradi (login "rop", parol ROP_PASSWORD).
+  // Admin (login "admin") hamma joyga, shu jumladan /rop ga ham kira oladi.
+  const isRop = path === "/rop" || path.startsWith("/rop/");
+  const ropPass = process.env.ROP_PASSWORD;
   const auth = req.headers.get("authorization") || "";
   if (auth.startsWith("Basic ")) {
     try {
       const [user, ...rest] = atob(auth.slice(6)).split(":");
-      if (user === "admin" && rest.join(":") === pass) return NextResponse.next();
+      const pw = rest.join(":");
+      if (user === "admin" && pw === pass) return NextResponse.next();
+      if (isRop && ropPass && user === "rop" && pw === ropPass) return NextResponse.next();
     } catch (e) { /* noto'g'ri sarlavha */ }
   }
   return new NextResponse("Kirish uchun login va parol kerak", {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Reklama paneli"' }
+    headers: { "WWW-Authenticate": isRop ? 'Basic realm="Sotuv bo\'limi paneli"' : 'Basic realm="Reklama paneli"' }
   });
 }
 
