@@ -27,7 +27,8 @@ function niceMax(v) {
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
 }
 
-export default function Chart({ slug }) {
+export default function Chart({ slug, apiBase }) {
+  const API = apiBase || "/api";
   const [k, setK] = useState("month");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function Chart({ slug }) {
   useEffect(() => {
     let dead = false;
     setLoading(true); setErr("");
-    fetch(`/api/chart?p=${encodeURIComponent(slug)}&k=${encodeURIComponent(k)}`, { cache: "no-store" })
+    fetch(`${API}/chart?p=${encodeURIComponent(slug)}&k=${encodeURIComponent(k)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => { if (dead) return; if (!j.ok) setErr(j.error || "Ma'lumot olinmadi"); setData(j); setLoading(false); })
       .catch((e) => { if (!dead) { setErr(String(e.message || e)); setLoading(false); } });

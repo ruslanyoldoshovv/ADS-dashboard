@@ -32,7 +32,8 @@ function Week({ week, onChange, disabled }) {
   );
 }
 
-export default function ScheduleEditor({ slug, operators }) {
+export default function ScheduleEditor({ slug, operators, apiBase }) {
+  const API = apiBase || "/api";
   const [open, setOpen] = useState(false);
   const [s, setS] = useState(null);
   const [msg, setMsg] = useState("");
@@ -41,7 +42,7 @@ export default function ScheduleEditor({ slug, operators }) {
   const load = () => {
     setOpen((x) => !x);
     if (s) return;
-    fetch("/api/schedule?p=" + encodeURIComponent(slug), { cache: "no-store" }).then((r) => r.json())
+    fetch(API + "/schedule?p=" + encodeURIComponent(slug), { cache: "no-store" }).then((r) => r.json())
       .then((j) => setS(j.sched || { def: { week: DEF }, ops: {} })).catch(() => setMsg("Grafik o'qilmadi"));
   };
   const opOf = (uid) => (s.ops && s.ops[uid]) || {};
@@ -66,7 +67,7 @@ export default function ScheduleEditor({ slug, operators }) {
     });
     // Ro'yxatda hozir ko'rinmagan (shu davrda lidi yo'q) operatorlarning grafigi ham saqlanib qoladi
     Object.keys(s.ops || {}).forEach((uid) => { if (!ops[uid]) ops[uid] = Object.assign({ useDef: !s.ops[uid].week }, s.ops[uid]); });
-    fetch("/api/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: slug, def: s.def, ops }) })
+    fetch(API + "/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p: slug, def: s.def, ops }) })
       .then((r) => r.json()).then((j) => { if (j.ok) { setS(j.sched); setMsg("Saqlandi. Yangi grafik keyingi hisoblashdan (ertaga 09:00) boshlab ishlatiladi."); } else setMsg("Saqlanmadi: " + (j.error || "")); })
       .catch(() => setMsg("Saqlanmadi: aloqa yo'q"));
   };
