@@ -2,7 +2,7 @@
 // Shaxsiy chat (faqat admin): /start, /kecha, /bugun, /guruhlar, /yubor, /yordam
 // Guruh (faqat admin buyrug'i): /ulash (loyiha tanlanadi), /uzish
 import cfg from "../../../../projects.config";
-import { tg, tgSend, tgSecret, tgReady, esc } from "../../../../lib/telegram";
+import { tg, tgSend, tgSecret, tgReady, tgDest, esc } from "../../../../lib/telegram";
 import { tgRead, tgSet, tgDel, storeReady } from "../../../../lib/store";
 import { buildReport, buildGroupReport, reportProjects, digestLine } from "../../../../lib/report";
 
@@ -41,24 +41,26 @@ export async function POST(req) {
     // Tugma bosildi
     if (u.callback_query) {
       const q = u.callback_query, from = String(q.from.id), chat = q.message && q.message.chat ? q.message.chat.id : q.from.id, data = String(q.data || "");
+      // Mavzuli guruh: tugma qaysi mavzuda bo'lsa, javob ham o'sha mavzuga
+      const to = tgDest(chat, q.message && q.message.is_topic_message ? q.message.message_thread_id : null);
       if (from !== admin) { await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Faqat admin uchun" }); return Response.json({ ok: true }); }
       // callback_data: "u:<loyiha>:<buyruq xabari id>" yoki "r:<kecha|bugun>:<loyiha>"
       const parts = data.split(":");
       const p = cfg.projects.find((x) => x.slug === (parts[0] === "u" || parts[0] === "g" ? parts[1] : parts[2]));
       if (parts[0] === "u" && p) {
-        await tgSet("group:" + p.slug, chat);
+        await tgSet("group:" + p.slug, to);
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Ulandi" });
         // Guruhda boshqa loyiha nomlari ko'rinmasligi uchun: tugmali xabar va /ulash buyrug'i o'chiriladi
         await del(chat, q.message && q.message.message_id);
         await del(chat, parts[2]);
-        await tgSend(chat, "✅ Ulandi: bu guruhga <b>" + esc(p.name) + "</b> hisobotlari keladi (har kuni 09:00–10:00).");
+        await tgSend(to, "✅ Ulandi: bu " + (to.includes(":") ? "mavzuga" : "guruhga") + " <b>" + esc(p.name) + "</b> hisobotlari keladi (har kuni 09:00–10:00).");
       } else if (data.startsWith("g:") && p) {
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Tayyorlanmoqda..." });
-        await tgSend(chat, (await buildGroupReport(p, "yesterday")).text);
+        await tgSend(to, (await buildGroupReport(p, "yesterday")).text);
       } else if ((data.startsWith("r:yesterday:") || data.startsWith("r:today:")) && p) {
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Tayyorlanmoqda..." });
         const r = await buildReport(p, data.split(":")[1], { panel: S.panel });
-        await tgSend(chat, r.text);
+        await tgSend(to, r.text);
       } else await tg("answerCallbackQuery", { callback_query_id: q.id });
       return Response.json({ ok: true });
     }
@@ -78,7 +80,7 @@ export async function POST(req) {
       else if (cmd === "/bugun") await tgSend(chat, "Qaysi loyiha (bugun hozirgacha)?", { reply_markup: projectKeyboard("r:today:") });
       else if (cmd === "/guruh") await tgSend(chat, "Guruhga boradigan hisobot ko'rinishi (kecha). Qaysi loyiha?", { reply_markup: projectKeyboard("g:") });
       else if (cmd === "/guruhlar") {
-        const rows = cfg.projects.filter((p) => S["group:" + p.slug]).map((p) => "• " + esc(p.short) + " → guruh ID " + S["group:" + p.slug]);
+        const rows = cfg.projects.filter((p) => S["group:" + p.slug]).map((p) => "• " + esc(p.short) + " → guruh " + String(S["group:" + p.slug]).replace(":", ", mavzu "));
         await tgSend(chat, rows.length ? "<b>Ulangan guruhlar:</b>\n" + rows.join("\n") : "Hali hech bir guruh ulanmagan. Botni guruhga qo'shib, guruhda /ulash deb yozing.");
       } else if (cmd === "/yubor") {
         await tgSend(chat, "⏳ Kechagi hisobotlar tayyorlanmoqda...");
@@ -96,11 +98,14 @@ export async function POST(req) {
     }
     // Guruh: faqat admin buyruqlari
     if (from !== admin) return Response.json({ ok: true });
-    if (cmd === "/ulash") await tgSend(chat, "Bu guruhga qaysi loyiha hisoboti kelsin?", { reply_markup: projectKeyboard("u:", ":" + m.message_id) });
+    // Mavzuli guruh (forum): buyruq yozilgan mavzu eslab qolinadi, hisobot faqat shu mavzuga boradi
+    const to = tgDest(chat, m.chat.is_forum && m.is_topic_message ? m.message_thread_id : null);
+    const where = to.includes(":") ? "mavzu" : "guruh";
+    if (cmd === "/ulash") await tgSend(to, "Bu " + where + "ga qaysi loyiha hisoboti kelsin?", { reply_markup: projectKeyboard("u:", ":" + m.message_id) });
     else if (cmd === "/uzish") {
-      const gone = cfg.projects.filter((p) => String(S["group:" + p.slug]) === String(chat));
+      const gone = cfg.projects.filter((p) => String(S["group:" + p.slug]) === to);
       for (const p of gone) await tgDel("group:" + p.slug);
-      await tgSend(chat, gone.length ? "Uzildi: " + gone.map((p) => esc(p.short)).join(", ") : "Bu guruhga hech qaysi loyiha ulanmagan.");
+      await tgSend(to, gone.length ? "Uzildi: " + gone.map((p) => esc(p.short)).join(", ") : "Bu " + where + "ga hech qaysi loyiha ulanmagan.");
     }
   } catch (e) {
     try { if (admin) await tgSend(admin, "⚠️ Bot xatosi: " + esc(String(e.message || e).slice(0, 300))); } catch (x) { /* o'tkazib yuboriladi */ }
