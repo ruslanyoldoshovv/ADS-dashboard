@@ -26,7 +26,11 @@ const HELP = [
   "Har kuni 09:00–10:00 oralig'ida kechagi hisobot guruhlarga avtomatik keladi."
 ].join("\n");
 
-const projectKeyboard = (prefix, suffix) => ({ inline_keyboard: reportProjects().map((p) => [{ text: p.short, callback_data: prefix + p.slug + (suffix || "") }]) });
+const keyboardOf = (list, prefix, suffix) => ({ inline_keyboard: list.map((p) => [{ text: p.short, callback_data: prefix + p.slug + (suffix || "") }]) });
+const projectKeyboard = (prefix, suffix) => keyboardOf(reportProjects(), prefix, suffix);
+// /ulash uchun: nomi berilgan barcha loyihalar (hali to'liq ulanmaganlari ham). "bo'sh" slotlar ko'rsatilmaydi.
+// To'liq ulanmagan loyiha guruhga oldindan bog'lab qo'yiladi, hisobot esa ulangandan keyin keladi.
+const linkKeyboard = (suffix) => keyboardOf(cfg.projects.filter((p) => !/bo'sh/i.test(p.niche || "")), "u:", suffix);
 // Xabarni o'chirish (o'chira olmasa jim o'tadi: masalan botda guruhda "xabarlarni o'chirish" huquqi bo'lmasa)
 const del = (chat, id) => (id ? tg("deleteMessage", { chat_id: chat, message_id: Number(id) }).catch(() => null) : null);
 
@@ -53,7 +57,7 @@ export async function POST(req) {
         // Guruhda boshqa loyiha nomlari ko'rinmasligi uchun: tugmali xabar va /ulash buyrug'i o'chiriladi
         await del(chat, q.message && q.message.message_id);
         await del(chat, parts[2]);
-        await tgSend(to, "✅ Ulandi: bu " + (to.includes(":") ? "mavzuga" : "guruhga") + " <b>" + esc(p.name) + "</b> hisobotlari keladi (har kuni 09:00–10:00).");
+        await tgSend(to, "✅ Ulandi: bu " + (to.includes(":") ? "mavzuga" : "guruhga") + " <b>" + esc(p.name) + "</b> hisobotlari keladi (har kuni 09:00–10:00)." + (reportProjects().some((x) => x.slug === p.slug) ? "" : "\n⏳ Loyiha hali to'liq ulanmagan: hisobotlar ulangandan keyin keladi."));
       } else if (data.startsWith("g:") && p) {
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Tayyorlanmoqda..." });
         await tgSend(to, (await buildGroupReport(p, "yesterday")).text);
@@ -101,7 +105,7 @@ export async function POST(req) {
     // Mavzuli guruh (forum): buyruq yozilgan mavzu eslab qolinadi, hisobot faqat shu mavzuga boradi
     const to = tgDest(chat, m.chat.is_forum && m.is_topic_message ? m.message_thread_id : null);
     const where = to.includes(":") ? "mavzu" : "guruh";
-    if (cmd === "/ulash") await tgSend(to, "Bu " + where + "ga qaysi loyiha hisoboti kelsin?", { reply_markup: projectKeyboard("u:", ":" + m.message_id) });
+    if (cmd === "/ulash") await tgSend(to, "Bu " + where + "ga qaysi loyiha hisoboti kelsin?", { reply_markup: linkKeyboard(":" + m.message_id) });
     else if (cmd === "/uzish") {
       const gone = cfg.projects.filter((p) => String(S["group:" + p.slug]) === to);
       for (const p of gone) await tgDel("group:" + p.slug);
