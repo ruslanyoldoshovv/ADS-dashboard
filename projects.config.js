@@ -144,12 +144,15 @@ module.exports = {
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
     {
-      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P4, META_ACCOUNT_P4 va CRM (AMO_SUBDOMAIN_P4 + AMO_TOKEN_P4 yoki BITRIX_WEBHOOK_P4) kiritiladi
+      // Polaris Consulting (chet elda o'qish, Italiya). amoCRM. Vercel: META_ACCOUNT_P4, AMO_SUBDOMAIN_P4, AMO_TOKEN_P4 (maxfiy).
+      // Reklama akkaunti Nexus BM'ga partner qilib berilgan, shuning uchun Meta tokeni Nexus'niki (META_TOKEN_P1).
+      // Voronka bosqichlari va "sifatli lid" mezoni amoCRM ulangach o'qib, alohida sozlanadi.
       slug: "loyiha-4",
-      short: "Loyiha 4",
-      niche: "bo'sh",
-      name: "Loyiha 4 · bo'sh",
+      short: "Polaris Consulting",
+      niche: "Chet elda o'qish",
+      name: "Polaris Consulting · Chet elda o'qish",
       env: "P4",
+      metaTokenFrom: "P1",
       currency: "USD",
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
