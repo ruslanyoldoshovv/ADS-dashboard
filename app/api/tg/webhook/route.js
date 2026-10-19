@@ -4,7 +4,7 @@
 import cfg from "../../../../projects.config";
 import { tg, tgSend, tgSecret, tgReady, esc } from "../../../../lib/telegram";
 import { tgRead, tgSet, tgDel, storeReady } from "../../../../lib/store";
-import { buildReport, reportProjects, digestLine } from "../../../../lib/report";
+import { buildReport, buildGroupReport, reportProjects, digestLine } from "../../../../lib/report";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,6 +15,7 @@ const HELP = [
   "<b>Shaxsiy chatda:</b>",
   "/kecha — kechagi hisobot (loyiha tanlanadi)",
   "/bugun — bugun hozirgacha",
+  "/guruh — guruhga boradigan qisqa hisobot ko'rinishi (kecha)",
   "/guruhlar — qaysi loyiha qaysi guruhga ulangan",
   "/yubor — kechagi hisobotlarni hozir guruhlarga yuborish",
   "",
@@ -43,7 +44,7 @@ export async function POST(req) {
       if (from !== admin) { await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Faqat admin uchun" }); return Response.json({ ok: true }); }
       // callback_data: "u:<loyiha>:<buyruq xabari id>" yoki "r:<kecha|bugun>:<loyiha>"
       const parts = data.split(":");
-      const p = cfg.projects.find((x) => x.slug === (parts[0] === "u" ? parts[1] : parts[2]));
+      const p = cfg.projects.find((x) => x.slug === (parts[0] === "u" || parts[0] === "g" ? parts[1] : parts[2]));
       if (parts[0] === "u" && p) {
         await tgSet("group:" + p.slug, chat);
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Ulandi" });
@@ -51,6 +52,9 @@ export async function POST(req) {
         await del(chat, q.message && q.message.message_id);
         await del(chat, parts[2]);
         await tgSend(chat, "✅ Ulandi: bu guruhga <b>" + esc(p.name) + "</b> hisobotlari keladi (har kuni 09:00–10:00).");
+      } else if (data.startsWith("g:") && p) {
+        await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Tayyorlanmoqda..." });
+        await tgSend(chat, (await buildGroupReport(p, "yesterday")).text);
       } else if ((data.startsWith("r:yesterday:") || data.startsWith("r:today:")) && p) {
         await tg("answerCallbackQuery", { callback_query_id: q.id, text: "Tayyorlanmoqda..." });
         const r = await buildReport(p, data.split(":")[1], { panel: S.panel });
@@ -72,6 +76,7 @@ export async function POST(req) {
       if (cmd === "/start" || cmd === "/yordam" || cmd === "/help") await tgSend(chat, HELP);
       else if (cmd === "/kecha") await tgSend(chat, "Qaysi loyiha (kecha)?", { reply_markup: projectKeyboard("r:yesterday:") });
       else if (cmd === "/bugun") await tgSend(chat, "Qaysi loyiha (bugun hozirgacha)?", { reply_markup: projectKeyboard("r:today:") });
+      else if (cmd === "/guruh") await tgSend(chat, "Guruhga boradigan hisobot ko'rinishi (kecha). Qaysi loyiha?", { reply_markup: projectKeyboard("g:") });
       else if (cmd === "/guruhlar") {
         const rows = cfg.projects.filter((p) => S["group:" + p.slug]).map((p) => "• " + esc(p.short) + " → guruh ID " + S["group:" + p.slug]);
         await tgSend(chat, rows.length ? "<b>Ulangan guruhlar:</b>\n" + rows.join("\n") : "Hali hech bir guruh ulanmagan. Botni guruhga qo'shib, guruhda /ulash deb yozing.");
@@ -81,7 +86,7 @@ export async function POST(req) {
         for (const p of reportProjects()) {
           try {
             const r = await buildReport(p, "yesterday", { panel: S.panel });
-            if (S["group:" + p.slug]) await tgSend(S["group:" + p.slug], r.text);
+            if (S["group:" + p.slug]) await tgSend(S["group:" + p.slug], (await buildGroupReport(p, "yesterday")).text);
             lines.push(digestLine(p, r) + (S["group:" + p.slug] ? "" : " <i>(guruh ulanmagan)</i>"));
           } catch (e) { lines.push("• " + esc(p.short) + ": xato — " + esc(String(e.message || e).slice(0, 120))); }
         }
