@@ -3,7 +3,7 @@
 import cfg from "../../../../projects.config";
 import { tgSend, tgReady, esc } from "../../../../lib/telegram";
 import { tgRead, lockTry, storeReady } from "../../../../lib/store";
-import { buildReport, reportProjects, digestLine } from "../../../../lib/report";
+import { buildReport, buildGroupReport, reportProjects, digestLine } from "../../../../lib/report";
 import { tashkentNow } from "../../../../lib/calc";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,8 @@ export async function GET() {
   const res = await Promise.all(list.map(async (p) => {
     try {
       const r = await buildReport(p, "yesterday", { panel: S.panel });
-      if (S["group:" + p.slug]) await tgSend(S["group:" + p.slug], r.text);
+      // Guruhga: qisqa hisobot (lid forma, Direct, jami). Sizga: to'liq xulosa
+      if (S["group:" + p.slug]) await tgSend(S["group:" + p.slug], (await buildGroupReport(p, "yesterday")).text);
       return digestLine(p, r) + (S["group:" + p.slug] ? "" : " <i>(guruh ulanmagan)</i>");
     } catch (e) { return "• " + esc(p.short) + ": xato — " + esc(String(e.message || e).slice(0, 120)); }
   }));
