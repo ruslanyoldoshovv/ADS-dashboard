@@ -42,7 +42,7 @@ export async function GET(req) {
       const sub = c.amoSub, tok = c.amoToken;
       const acc = await pingAmo(sub, tok);
       const st = await fetchPipelines(sub, tok);
-      const missing = missingStages(st.statuses, cfg.stages);
+      const missing = missingStages(st.statuses, p.stages || cfg.stages);
       out.amocrm = { ok: true, akkaunt: acc.name, voronkalar: st.pipelines, topilmagan_bosqichlar: missing };
       // Sozlash uchun ma'lumot: bosqich nomlari va qo'shimcha maydon nomlari (qiymatlar emas)
       const safe = async (fn) => { try { return await fn(); } catch (x) { return "o'qilmadi: " + String(x.message).slice(0, 120); } };
