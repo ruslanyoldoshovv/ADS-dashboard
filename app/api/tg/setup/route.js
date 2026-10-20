@@ -18,7 +18,7 @@ export async function GET(req) {
       { command: "kecha", description: "Kechagi hisobot" }, { command: "bugun", description: "Bugun hozirgacha" }, { command: "guruh", description: "Guruh hisoboti ko'rinishi" },
       { command: "guruhlar", description: "Ulangan guruhlar" }, { command: "yubor", description: "Hisobotlarni hozir guruhlarga yuborish" },
       { command: "yordam", description: "Yordam" }], scope: { type: "all_private_chats" } });
-    await tg("setMyCommands", { commands: [{ command: "ulash", description: "Guruhga loyiha hisobotini ulash" }, { command: "uzish", description: "Guruhni uzish" }], scope: { type: "all_group_chats" } });
+    await tg("setMyCommands", { commands: [{ command: "kecha", description: "Kechagi hisobot (sana bilan)" }, { command: "bugun", description: "Bugun hozirgacha" }, { command: "ulash", description: "Guruhga loyiha hisobotini ulash" }, { command: "uzish", description: "Guruhni uzish" }], scope: { type: "all_group_chats" } });
     await tgSet("panel", base + "/");
     const S = await tgRead();
     return Response.json({
