@@ -21,7 +21,7 @@ const STAGES = {
 
 // Lost sababi nomida shu so'zlar bo'lsa, tegishli guruhga tushadi (kichik harfda yozing)
 const REASON_WORDS = {
-  noAnswer: ["ko'tarmadi", "kotarmadi", "nedozvon", "недозвон", "недазвон", "не взял"],
+  noAnswer: ["ko'tarmadi", "kotarmadi", "nedozvon", "недозвон", "недазвон", "не взял", "bog'lana olmadik"],
   duplicate: ["takror", "dubl", "дубл"]
 };
 
@@ -144,9 +144,8 @@ module.exports = {
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
     {
-      // Polaris Consulting (chet elda o'qish, Italiya). amoCRM. Vercel: META_ACCOUNT_P4, AMO_SUBDOMAIN_P4, AMO_TOKEN_P4 (maxfiy).
+      // Polaris Consulting (chet elda o'qish). amoCRM ("Sotuv" voronkasi). Vercel: META_ACCOUNT_P4, AMO_SUBDOMAIN_P4, AMO_TOKEN_P4 (maxfiy).
       // Reklama akkaunti Nexus BM'ga partner qilib berilgan, shuning uchun Meta tokeni Nexus'niki (META_TOKEN_P1).
-      // Voronka bosqichlari va "sifatli lid" mezoni amoCRM ulangach o'qib, alohida sozlanadi.
       slug: "loyiha-4",
       short: "Polaris Consulting",
       niche: "Chet elda o'qish",
@@ -154,6 +153,28 @@ module.exports = {
       env: "P4",
       metaTokenFrom: "P1",
       currency: "USD",
+      // Bosqichlar: YANGI LID -> BOG'LANILMADI -> ALOQA O'RNATILDI -> MA'LUMOT BERILDI (sifatli boshlanishi) -> MEETINGGA/OFISGA TAKLIF -> OFISGA KELDI -> Qisman to'lov -> WON
+      stages: {
+        contacted: ["ALOQA O'RNATILDI"],
+        info: ["MA'LUMOT BERILDI"],
+        offer: ["MEETINGGA TAKLIF QILINDI", "OFISGA TAKLIF QILINDI"],
+        visit: ["OFISGA KELDI"],
+        visitPipelines: [],
+        sale: ["Qisman to'lov qildi", "WON"] // birinchi pul tushgan payt sotuv hisoblanadi
+      },
+      // Voronka va qoidalardagi bosqich nomlari (panelda shunday ko'rinadi)
+      labels: { contacted: "Aloqa o'rnatildi", info: "Ma'lumot berildi", offer: "Meeting/ofisga taklif", visit: "Ofisga keldi", sale: "To'lov (sotuv)" },
+      // LOST lid sifati "SIFAT" maydoniga qarab. Bo'sh bo'lsa sifatsiz deb olinadi.
+      lostQuality: { field: "SIFAT", good: ["Sifatli"], bad: ["Sifatsiz"] },
+      // Lid qaysi reklamadan: Meta lid formasi amoCRM'ga yozadigan maydonlar
+      source: { by: "fields", ad: ["ad name"], adset: ["Ad set name"], campaign: ["Compaign name"] },
+      // Daromad: amoCRM'dagi shartnoma summasi (dollarda). Panelda so'mga o'girib ko'rsatiladi.
+      revenueField: "shartnoma narxi ($)",
+      revenueCurrency: "USD",
+      payDateField: "To'lov sanasi",
+      // Davlat filtri: amoCRM tegi "<DAVLAT>_LEADS" (masalan ITALIYA_LEADS), Meta'da kampaniya nomining birinchi so'zi (ITALIYA 2 - ...).
+      // Yangi davlat tegi va kampaniyasi qo'shilsa, panelda avtomatik paydo bo'ladi.
+      countries: { tagSuffix: "_LEADS" },
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
