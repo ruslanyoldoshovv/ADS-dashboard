@@ -62,6 +62,17 @@ export async function GET(req) {
       const range = resolveRange({ r: q.get("r") || (q.get("days") === "30" ? "30d" : q.get("days") === "1" ? "today" : q.get("days") === "7" ? "7d" : "month"), from: q.get("from"), to: q.get("to") }, tashkentNow(cfg));
       const D = await getProjectData(p, range, { tolerant: true });
       out.namuna = D.diag || { izoh: "Namuna rejimi: haqiqiy ulanish yo'q" };
+      // Meta lid formasi vaqtini o'qish ruxsati (leads_retrieval) bormi: amoCRM'dagi "Lead ID" bo'yicha sinov
+      const ids = (D.diag && D.diag.lead_id_namuna) || [];
+      if (ids.length && c.metaToken) {
+        out.meta_lid_oqish = await Promise.all(ids.map(async (id) => {
+          try {
+            const r = await fetch("https://graph.facebook.com/v21.0/" + id + "?fields=created_time", { headers: { Authorization: "Bearer " + c.metaToken }, cache: "no-store" });
+            const j = await r.json();
+            return j.error ? { lead_id: id, ok: false, xato: String(j.error.message || "").slice(0, 200) } : { lead_id: id, ok: true, vaqt: j.created_time };
+          } catch (e) { return { lead_id: id, ok: false, xato: String(e.message || e).slice(0, 200) }; }
+        }));
+      } else out.meta_lid_oqish = { izoh: "amoCRM lidlarida Lead ID topilmadi" };
     } catch (err) { out.namuna = { ok: false, sabab: String(err.message) }; }
   }
   return Response.json(out);
