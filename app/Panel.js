@@ -4,6 +4,8 @@ import { getProjectData, accountList, projectStatus } from "../lib/data";
 import { accCookie } from "../lib/env";
 import { cookies } from "next/headers";
 import AccountPicker from "./AccountPicker";
+import CountryPicker from "./CountryPicker";
+import { ctyCookie } from "../lib/country";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
 import { getPlans, planEntry, colsRead, storeReady, badgeRead, badgeWrite } from "../lib/store";
@@ -33,7 +35,7 @@ function href(slug, rq, by, sm) { const b = reqCtx().base; return `${b}?p=${slug
 
 // Faqat TANLANGAN loyiha jonli yuklanadi. Boshqa loyihalar "muzlab" turadi: tabda oxirgi ochilgandagi holat ko'rinadi
 // (Meta va CRM'ga so'rov ketmaydi). Tabga o'tilganda o'sha loyiha yangilanadi.
-async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fresh) {
+async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fresh, ctyRaw) {
   const isCur = range.planMonth.y === now.y && range.planMonth.m === now.m;
   let badges = {};
   if (storeReady()) { try { badges = await badgeRead(); } catch (e) { badges = {}; } }
@@ -44,7 +46,7 @@ async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fres
       const plan = buildDailyPlan(p, range.planMonth, planEntry(plans, p, range.planMonthKey));
       const todayPlan = isCur ? plan : buildDailyPlan(p, now, planEntry(plans, p, monthKey(now, 0)));
       // Sotuv hisobi rejimi faqat tanlangan loyihaga qo'llanadi (qolganlari uchun ortiqcha so'rov yuborilmaydi)
-      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead", accounts: p.slug === selSlug ? accRaw : "", fresh });
+      const D = await getProjectData(p, range, { planToday: todayPlan.byDay[now.day] || 0, rate: rate.rate, saleMode: p.slug === selSlug ? sm : "lead", accounts: p.slug === selSlug ? accRaw : "", countries: p.slug === selSlug ? ctyRaw : "", fresh });
       const view = buildView(p, D, cfg, p.slug === selSlug ? bySel : "ad", { rate, plan, planMonth: range.planMonth, showToday: range.includesToday });
       if (storeReady()) { try { await badgeWrite(p.slug, { r: view.redCount, a: view.amberCount, e: 0, at: Date.now() }); } catch (e) { /* belgi saqlanmasa ham ishlaydi */ } }
       return { p, view, D, error: null };
@@ -67,9 +69,11 @@ export default async function Panel({ searchParams, mode }) {
   const range = resolveRange(sp, now);
   // Reklama akkauntlari tanlovi (bir nechta akkaunt bo'lsa): cookie'da saqlanadi, bo'sh bo'lsa hammasi
   const accRaw = (cookies().get(accCookie(sel.slug)) || {}).value || "";
+  // Davlat tanlovi (sozlamada countries bo'lgan loyihada): cookie'da, bo'sh bo'lsa hammasi
+  const ctyRaw = sel.countries ? (cookies().get(ctyCookie(sel.slug)) || {}).value || "" : "";
   const [plans, rate, cols, accs] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null, accountList(sel).catch(() => [])]);
   const fresh = sp.fresh === "1";
-  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw, fresh);
+  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw, fresh, ctyRaw);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
 
@@ -138,6 +142,7 @@ export default async function Panel({ searchParams, mode }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
+          {cur.D && cur.D.countries && cur.D.countries.all.length > 1 && <CountryPicker key={ctyRaw} cookie={ctyCookie(sel.slug)} list={cur.D.countries.all} selected={cur.D.countries.selected} />}
           {!ctx.rop && accs.length > 1 && <AccountPicker slug={sel.slug} cookie={accCookie(sel.slug)} list={accs} selected={cur.D && cur.D.diag && cur.D.diag.akkauntlar ? cur.D.diag.akkauntlar : accs.map((a) => a.id)} />}
           {sel.crm !== "bitrix" && <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />}
           <DatePicker range={range} sel={sel} by={by} sm={sm} />
@@ -164,7 +169,7 @@ export default async function Panel({ searchParams, mode }) {
         </div>
       )}
 
-      {v && <Body v={v} sel={sel} rq={range.query} by={by} sm={sm} cols={cols} />}
+      {v && <Body v={v} sel={sel} rq={range.query} by={by} sm={sm} cols={cols} filterKey={accRaw + "|" + ctyRaw} />}
     </div>
   );
 }
@@ -264,7 +269,7 @@ function PlanForm({ f, sel, by, range }) {
   );
 }
 
-function Body({ v, sel, rq, by, sm, cols }) {
+function Body({ v, sel, rq, by, sm, cols, filterKey }) {
   return (
     <>
       {/* Bugun: faqat tanlangan davr bugunni o'z ichiga olganda */}
@@ -305,7 +310,7 @@ function Body({ v, sel, rq, by, sm, cols }) {
       </div>
 
       {/* Dinamika grafigi: o'zining davr tanlagichi bilan, alohida yuklanadi */}
-      <Chart slug={sel.slug} apiBase={reqCtx().rop ? "/rop/api" : "/api"} />
+      <Chart slug={sel.slug} apiBase={reqCtx().rop ? "/rop/api" : "/api"} filterKey={filterKey} />
 
       {/* Ogohlantirishlar: yopiq turadi, bosilganda ochiladi */}
       <details className="card fold">

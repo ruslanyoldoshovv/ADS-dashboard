@@ -27,7 +27,7 @@ function niceMax(v) {
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
 }
 
-export default function Chart({ slug, apiBase }) {
+export default function Chart({ slug, apiBase, filterKey }) {
   const API = apiBase || "/api";
   const [k, setK] = useState("month");
   const [data, setData] = useState(null);
@@ -55,7 +55,7 @@ export default function Chart({ slug, apiBase }) {
       .then((j) => { if (dead) return; if (!j.ok) setErr(j.error || "Ma'lumot olinmadi"); setData(j); setLoading(false); })
       .catch((e) => { if (!dead) { setErr(String(e.message || e)); setLoading(false); } });
     return () => { dead = true; };
-  }, [slug, k]);
+  }, [slug, k, filterKey]); // filterKey: akkaunt yoki davlat tanlovi o'zgarsa grafik qayta o'qiladi
 
   const USD = data && data.currency === "USD";
   const money = (x) => (x == null ? "—" : USD ? "$" + (x >= 100 ? fmtN(x) : (Math.round(x * 100) / 100).toString()) : fmtN(x) + " so'm");
