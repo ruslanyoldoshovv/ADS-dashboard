@@ -20,8 +20,10 @@ const HELP = [
   "/yubor — kechagi hisobotlarni hozir guruhlarga yuborish",
   "",
   "<b>Guruhda:</b>",
-  "/ulash — shu guruhga loyiha hisobotini ulash",
+  "/ulash — shu guruhga (mavzuga) loyiha hisobotini ulash",
   "/uzish — guruhni uzish",
+  "/kecha — shu guruhga ulangan loyihaning kechagi hisoboti (sana bilan)",
+  "/bugun — bugun hozirgacha (sanasiz)",
   "",
   "Har kuni 09:00–10:00 oralig'ida kechagi hisobot guruhlarga avtomatik keladi."
 ].join("\n");
@@ -106,6 +108,15 @@ export async function POST(req) {
     const to = tgDest(chat, m.chat.is_forum && m.is_topic_message ? m.message_thread_id : null);
     const where = to.includes(":") ? "mavzu" : "guruh";
     if (cmd === "/ulash") await tgSend(to, "Bu " + where + "ga qaysi loyiha hisoboti kelsin?", { reply_markup: linkKeyboard(":" + m.message_id) });
+    else if (cmd === "/kecha" || cmd === "/bugun") {
+      // Faqat shu guruhga (mavzuga) ulangan loyiha(lar) hisoboti
+      const linked = cfg.projects.filter((p) => String(S["group:" + p.slug]) === to);
+      if (!linked.length) await tgSend(to, "Bu " + where + "ga hech qaysi loyiha ulanmagan. Avval /ulash buyrug'ini yozing.");
+      for (const p of linked) {
+        try { await tgSend(to, (await buildGroupReport(p, cmd === "/kecha" ? "yesterday" : "today")).text); }
+        catch (e) { await tgSend(to, "⚠️ " + esc(p.short) + ": hisobot tayyorlanmadi — " + esc(String(e.message || e).slice(0, 150))); }
+      }
+    }
     else if (cmd === "/uzish") {
       const gone = cfg.projects.filter((p) => String(S["group:" + p.slug]) === to);
       for (const p of gone) await tgDel("group:" + p.slug);
