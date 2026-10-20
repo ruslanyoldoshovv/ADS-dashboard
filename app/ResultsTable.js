@@ -17,7 +17,9 @@ function Two({ a, b, c, bold }) {
 function columns(h) {
   return [
     { k: "spend", label: h.spend, w: 72, r: true, cell: (r) => <div className="r">{r.spend}</div> },
-    { k: "leads", label: "Lid", w: 44, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700 }}>{r.leads}</div> },
+    { k: "leads", label: "Lid (CRM)", w: 50, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700 }}>{r.leads}</div> },
+    // Meta lid formasidagi lidlar (Ads Manager bilan bir xil). CRM'dagidan sezilarli ko'p bo'lsa qizil: lid CRM'ga tushmagan
+    { k: "metaLeads", label: "Meta lid", w: 52, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700, color: r.metaGapColor }}>{r.metaLeads}</div> },
     { k: "good", label: "Sifatli", w: 92, cell: (r) => (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <span style={{ color: r.goodColor, whiteSpace: "nowrap" }}><b>{r.goodPct}</b> · {r.good}</span>
