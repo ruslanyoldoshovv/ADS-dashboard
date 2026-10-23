@@ -1,6 +1,7 @@
 // Parol himoyasi: panel ochiq internetda turadi, shuning uchun login/parol so'raladi.
 // Login: admin, parol: Vercel'dagi DASH_PASSWORD qiymati.
 import { NextResponse } from "next/server";
+import { ROP_USERS, ROP_HEADER } from "./lib/rop";
 
 export function middleware(req) {
   const pass = process.env.DASH_PASSWORD;
@@ -16,11 +17,14 @@ export function middleware(req) {
   if (path === "/api/tg/webhook") return NextResponse.next();
   if (path === "/api/tg/cron" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
   if (path === "/api/capi/sync" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
-  // Sotuv bo'limi rahbari (ROP): faqat /rop bo'limiga kiradi (login "rop", parol ROP_PASSWORD).
+  // Sotuv bo'limi rahbarlari (ROP): faqat /rop bo'limiga kiradi, har biri o'z loyihasini ko'radi (lib/rop.js:
+  // "rop" + ROP_PASSWORD -> Nexus School, "polaris" + ROP_PASSWORD_P4 -> Polaris Consulting).
   // Admin (login "admin") hamma joyga, shu jumladan /rop ga ham kira oladi.
   const isRop = path === "/rop" || path.startsWith("/rop/");
+  // Brauzerdan kelgan soxta loyiha sarlavhasi doim olib tashlanadi; uni faqat shu middleware qo'yadi
+  const clean = new Headers(req.headers);
+  clean.delete(ROP_HEADER);
   // Parollardagi tasodifiy bo'sh joy yoki qator oxiri (nusxalaganda qo'shilib qoladi) hisobga olinmaydi
-  const ropPass = String(process.env.ROP_PASSWORD || "").trim();
   const adminPass = String(pass || "").trim();
   const auth = req.headers.get("authorization") || "";
   if (auth.startsWith("Basic ")) {
@@ -30,8 +34,12 @@ export function middleware(req) {
       const txt = new TextDecoder().decode(Uint8Array.from(raw, (ch) => ch.charCodeAt(0)));
       const i = txt.indexOf(":");
       const user = txt.slice(0, i).trim().toLowerCase(), pw = txt.slice(i + 1).trim();
-      if (user === "admin" && (pw === adminPass || raw.slice(raw.indexOf(":") + 1) === pass)) return NextResponse.next();
-      if (isRop && ropPass && user === "rop" && pw === ropPass) return NextResponse.next();
+      if (user === "admin" && (pw === adminPass || raw.slice(raw.indexOf(":") + 1) === pass)) return NextResponse.next({ request: { headers: clean } });
+      if (isRop) {
+        const r = ROP_USERS.find((x) => x.user === user);
+        const rp = r ? String(process.env[r.passEnv] || "").trim() : "";
+        if (r && rp && pw === rp) { clean.set(ROP_HEADER, r.project); return NextResponse.next({ request: { headers: clean } }); }
+      }
     } catch (e) { /* noto'g'ri sarlavha */ }
   }
   return new NextResponse("Kirish uchun login va parol kerak", {
