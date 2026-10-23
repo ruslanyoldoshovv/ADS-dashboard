@@ -1,6 +1,6 @@
-// Sotuv bo'limi rahbari (ROP) uchun panel: faqat bitta loyiha (projects.config.js > ropProject, standart Nexus School).
+// Sotuv bo'limi rahbari (ROP) uchun panel: har bir ROP faqat o'z loyihasini ko'radi (lib/rop.js: rop -> Nexus, polaris -> Polaris).
 // Reklamalar jadvali, reklama akkauntlari va oylik rejani o'zgartirish ko'rinmaydi. Ish grafigini o'zgartira oladi.
-// Kirish: login "rop", parol Vercel'dagi ROP_PASSWORD.
+// Kirish: login "rop" + ROP_PASSWORD (Nexus) yoki "polaris" + ROP_PASSWORD_P4 (Polaris).
 import Panel from "../Panel";
 
 export const dynamic = "force-dynamic";
