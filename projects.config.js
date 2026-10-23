@@ -172,6 +172,8 @@ module.exports = {
       revenueField: "shartnoma narxi ($)",
       revenueCurrency: "USD",
       payDateField: "To'lov sanasi",
+      // Sotuvchilar jadvali amoCRM'dagi "Sotuvchi" maydoni bo'yicha (hamma lid bitta mas'ul foydalanuvchida turadi)
+      sellerField: "Sotuvchi",
       // Davlat filtri: amoCRM tegi "<DAVLAT>_LEADS" (masalan ITALIYA_LEADS), Meta'da kampaniya nomining birinchi so'zi (ITALIYA 2 - ...).
       // Yangi davlat tegi va kampaniyasi qo'shilsa, panelda avtomatik paydo bo'ladi.
       countries: { tagSuffix: "_LEADS" },
