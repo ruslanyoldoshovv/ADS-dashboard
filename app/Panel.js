@@ -480,7 +480,7 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
         </div>
 
         {!sel.hideOperators && <div className="card">
-          <div><h2 className="h2">Operatorlar</h2><div className="muted">{(v.opAvg == null ? "" : "Birinchi javob (mediana): " + v.opAvg + " daqiqa. ") + "Taklif (davr): shu davrda tushib, hozir \"Taklif qilindi\" bosqichida turgan lidlar. Hozir taklifda: hozirgi paytda shu bosqichda turgan barcha lidlar, qachon tushganidan qat'i nazar. \"Jami\" qatori: barcha operatorlar yig'indisi." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
+          <div><h2 className="h2">{v.sellerField ? "Sotuvchilar" : "Operatorlar"}</h2><div className="muted">{(v.sellerField ? "Lidlar amoCRM'dagi \"" + v.sellerField + "\" maydoni bo'yicha ajratilgan. Javob vaqti faqat umumiy hisoblanadi. " : "") + (v.opAvg == null ? "" : "Birinchi javob (mediana): " + v.opAvg + " daqiqa. ") + "Taklif (davr): shu davrda tushib, hozir taklif bosqichida turgan lidlar. Hozir taklifda: hozirgi paytda shu bosqichda turgan barcha lidlar, qachon tushganidan qat'i nazar. \"Jami\" qatori: barcha operatorlar yig'indisi." + (v.saleMode === "pay" ? " Sotuv: to'lov sanasi bo'yicha." : "")}</div></div>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 600 }}>
               <OpRow head cells={["Operator", "Javob vaqti", "Lid", "Sifatli", "Taklif (davr)", "Hozir taklifda", "Keldi", "Sotuv"]} />
@@ -491,7 +491,7 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
             </div>
           </div>
           <div style={{ padding: "12px 16px", borderRadius: 12, background: "#F3F5F7", fontSize: 14, color: "#2B3A46" }}>{v.opNote}</div>
-          <ScheduleEditor slug={sel.slug} apiBase={reqCtx().rop ? "/rop/api" : "/api"} operators={v.operators.filter((o) => o.uid).map((o) => ({ uid: o.uid, name: o.name }))} />
+          <ScheduleEditor slug={sel.slug} apiBase={reqCtx().rop ? "/rop/api" : "/api"} operators={v.schedUsers || v.operators.filter((o) => o.uid).map((o) => ({ uid: o.uid, name: o.name }))} />
         </div>}
       </div>
 
