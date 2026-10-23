@@ -2,7 +2,8 @@ import Link from "next/link";
 import cfg from "../projects.config";
 import { getProjectData, accountList, projectStatus } from "../lib/data";
 import { accCookie } from "../lib/env";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { ropSlug, ROP_HEADER } from "../lib/rop";
 import AccountPicker from "./AccountPicker";
 import CountryPicker from "./CountryPicker";
 import { ctyCookie } from "../lib/country";
@@ -63,8 +64,8 @@ export default async function Panel({ searchParams, mode }) {
   const sp = searchParams || {};
   const by = ["ad", "campaign", "adset"].includes(sp.by) ? sp.by : "ad";
   const sm = sp.sm === "pay" ? "pay" : "lead";
-  // ROP rejimida faqat sozlamadagi bitta loyiha (cfg.ropProject, standart: Nexus School)
-  const sel = ctx.rop ? (cfg.projects.find((x) => x.slug === (cfg.ropProject || "nexus-school")) || cfg.projects[0]) : (cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0]);
+  // ROP rejimida faqat kirgan ROP'ning o'z loyihasi (middleware sarlavhasi, lib/rop.js). Admin /rop da ?p= bilan tanlaydi.
+  const sel = ctx.rop ? (cfg.projects.find((x) => x.slug === ropSlug(headers().get(ROP_HEADER), sp.p, cfg.projects)) || cfg.projects[0]) : (cfg.projects.find((x) => x.slug === sp.p) || cfg.projects[0]);
   const now = tashkentNow(cfg);
   const range = resolveRange(sp, now);
   // Reklama akkauntlari tanlovi (bir nechta akkaunt bo'lsa): cookie'da saqlanadi, bo'sh bo'lsa hammasi
