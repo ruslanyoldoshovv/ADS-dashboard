@@ -181,12 +181,14 @@ module.exports = {
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
     {
-      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P5, META_ACCOUNT_P5 va CRM (AMO_SUBDOMAIN_P5 + AMO_TOKEN_P5 yoki BITRIX_WEBHOOK_P5) kiritiladi
+      // Nexus Samarqand (filial). Reklama akkaunti "Nexus School 24" BM'da, asosiy Nexus BM'ga partner qilib berilgan,
+      // shuning uchun Meta tokeni Nexus'niki (META_TOKEN_P1). Vercel: META_ACCOUNT_P5. CRM keyinroq ulanadi (alohida CRM).
       slug: "loyiha-5",
-      short: "Loyiha 5",
-      niche: "bo'sh",
-      name: "Loyiha 5 · bo'sh",
+      short: "Nexus Samarqand",
+      niche: "O'quv markazi · filial",
+      name: "Nexus Samarqand · O'quv markazi",
       env: "P5",
+      metaTokenFrom: "P1",
       currency: "USD",
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
