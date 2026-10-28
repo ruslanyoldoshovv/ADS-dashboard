@@ -95,14 +95,35 @@ module.exports = {
       // dayBudget: 1400000,  // ixtiyoriy: kunlik byudjet (yozilmasa: kunlik reja × CPL chegarasi)
     },
     {
+      // Ilm Nur (o'quv markazi). amoCRM: faqat "SOTUV 2" voronkasi. Vercel: META_ACCOUNT_P2, AMO_SUBDOMAIN_P2, AMO_TOKEN_P2 (maxfiy).
+      // Reklama akkaunti Nexus BM'ga partner qilib beriladi, shuning uchun Meta tokeni Nexus'niki (META_TOKEN_P1).
       slug: "loyiha-2",
-      short: "Loyiha 2",
-      niche: "bo'sh",
-      name: "Loyiha 2 · bo'sh",
+      short: "Ilm Nur",
+      niche: "O'quv markazi",
+      name: "Ilm Nur · O'quv markazi",
       env: "P2",
-      currency: "UZS",
-      thresholds: { cpl: 150000, qcpl: 220000, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 15, reply: 60, roas: 3, noAns: 0.3 },
-      plan: { weekday: 14, sunday: 8, overrides: {} }
+      metaTokenFrom: "P1",
+      currency: "USD", // reklama sarfi dollarda; tushum (bitim "Бюджет"i) so'mda
+      onlyPipelines: ["SOTUV 2"],
+      // YANGI LID -> BOG'LANILMADI -> ALOQA O'RNATILDI -> MA'LUMOT BERILDI / DARS VAQTI TO'G'RI KELMAGAN (sifatli) -> TAKLIF QILINDI -> KELDI -> WON
+      stages: {
+        contacted: ["SOTUV 2 > ALOQA O'RNATILDI"],
+        info: ["SOTUV 2 > MA'LUMOT BERILDI", "SOTUV 2 > DARS VAQTI TO'G'RI KELMAGAN"],
+        offer: ["SOTUV 2 > TAKLIF QILINDI"],
+        visit: ["SOTUV 2 > KELDI"],
+        visitPipelines: [],
+        sale: ["SOTUV 2 > WON"]
+      },
+      labels: { contacted: "Aloqa o'rnatildi", info: "Ma'lumot berildi", offer: "Taklif qilindi", visit: "Keldi", sale: "Sotuv (WON)" },
+      lostQuality: { field: "SIfat:", good: ["Sifatli"], bad: ["Sifatsiz"] },
+      source: { by: "fields", ad: ["Ad name", "ad name"], adset: ["Ad set name"], campaign: ["Compaign name"] },
+      sellerField: "Mas'ul",
+      payDateField: "To'lov sanasi",
+      // Filial filtri: lid "Filial" maydoni bo'yicha; Meta'da kampaniya nomida filial nomi bo'lsa (masalan "SERGELI - ..."), o'sha filialga
+      countries: { field: "Filial", values: ["Sergeli", "Oybek"], label: "Filiallar" },
+      // Chegaralar panelning o'zida o'zgartiriladi ("Chegaralar" tugmasi). Bu yerdagilari standart qiymat.
+      thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 15, reply: 60, roas: null, noAns: 0.3 },
+      plan: { weekday: 0, sunday: 0, overrides: {} }
     },
     {
       // Bitrix24 loyihasi (marva.bitrix24.kz). Vercel: BITRIX_WEBHOOK_P3 (maxfiy), META_ACCOUNT_P3.

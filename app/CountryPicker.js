@@ -4,7 +4,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export default function CountryPicker({ cookie, list, selected }) {
+export default function CountryPicker({ cookie, list, selected, label }) {
   const router = useRouter();
   const all = list.map((c) => c.id);
   const [sel, setSel] = useState(() => new Set(selected && selected.length ? selected : all));
@@ -28,8 +28,8 @@ export default function CountryPicker({ cookie, list, selected }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: "#566573" }}>Davlatlar {pending && <span className="muted">· yuklanmoqda...</span>}</span>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }} role="group" aria-label="Davlatlar">
+      <span style={{ fontSize: 12, fontWeight: 700, color: "#566573" }}>{label || "Davlatlar"} {pending && <span className="muted">· yuklanmoqda...</span>}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }} role="group" aria-label={label || "Davlatlar"}>
         <button type="button" className="chip" disabled={pending || isAll} onClick={() => save(new Set(all))}
           style={{ cursor: isAll ? "default" : "pointer", background: isAll ? "#E8EEF9" : undefined, borderColor: isAll ? "#1D4ED8" : undefined, fontWeight: 700 }}>
           Hammasi

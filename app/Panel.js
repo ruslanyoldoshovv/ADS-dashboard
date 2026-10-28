@@ -9,10 +9,10 @@ import CountryPicker from "./CountryPicker";
 import { ctyCookie } from "../lib/country";
 import { buildView, tashkentNow } from "../lib/calc";
 import { getUsdRate } from "../lib/rate";
-import { getPlans, planEntry, colsRead, storeReady, badgeRead, badgeWrite } from "../lib/store";
+import { getPlans, planEntry, colsRead, storeReady, badgeRead, badgeWrite, thrRead, withThresholds } from "../lib/store";
 import { buildDailyPlan, monthKey } from "../lib/plan";
 import { resolveRange, PRESETS } from "../lib/range";
-import { savePlan } from "./actions";
+import { savePlan, saveThresholds } from "./actions";
 import ResultsTable from "./ResultsTable";
 import Chart from "./Chart";
 import ScheduleEditor from "./ScheduleEditor";
@@ -36,11 +36,13 @@ function href(slug, rq, by, sm) { const b = reqCtx().base; return `${b}?p=${slug
 
 // Faqat TANLANGAN loyiha jonli yuklanadi. Boshqa loyihalar "muzlab" turadi: tabda oxirgi ochilgandagi holat ko'rinadi
 // (Meta va CRM'ga so'rov ketmaydi). Tabga o'tilganda o'sha loyiha yangilanadi.
-async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fresh, ctyRaw) {
+async function loadAll(range, bySel, selSlug, now, plans, rate, sm, accRaw, fresh, ctyRaw, thr) {
   const isCur = range.planMonth.y === now.y && range.planMonth.m === now.m;
   let badges = {};
   if (storeReady()) { try { badges = await badgeRead(); } catch (e) { badges = {}; } }
-  return Promise.all(cfg.projects.map(async (p) => {
+  return Promise.all(cfg.projects.map(async (p0) => {
+    // Tanlangan loyihaga paneldan saqlangan chegaralar qo'llanadi
+    const p = p0.slug === selSlug ? withThresholds(p0, thr) : p0;
     if (p.slug !== selSlug) return { p, view: null, D: null, error: null, frozen: badges[p.slug] || null, ready: projectStatus(p).ok };
     try {
       // Tanlangan davr oyi uchun panelda kiritilgan reja bo'lsa o'sha, bo'lmasa sozlamadagi standart reja
@@ -72,9 +74,10 @@ export default async function Panel({ searchParams, mode }) {
   const accRaw = (cookies().get(accCookie(sel.slug)) || {}).value || "";
   // Davlat tanlovi (sozlamada countries bo'lgan loyihada): cookie'da, bo'sh bo'lsa hammasi
   const ctyRaw = sel.countries ? (cookies().get(ctyCookie(sel.slug)) || {}).value || "" : "";
-  const [plans, rate, cols, accs] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null, accountList(sel).catch(() => [])]);
+  const [plans, rate, cols, accs, thr] = await Promise.all([getPlans(), getUsdRate(cfg), storeReady() ? colsRead(sel.slug) : null, accountList(sel).catch(() => []), thrRead(sel.slug)]);
+  const selT = withThresholds(sel, thr).thresholds;
   const fresh = sp.fresh === "1";
-  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw, fresh, ctyRaw);
+  const all = await loadAll(range, by, sel.slug, now, plans, rate, sm, accRaw, fresh, ctyRaw, thr);
   const cur = all.find((x) => x.p.slug === sel.slug);
   const v = cur.view;
 
@@ -143,16 +146,19 @@ export default async function Panel({ searchParams, mode }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
-          {cur.D && cur.D.countries && cur.D.countries.all.length > 1 && <CountryPicker key={ctyRaw} cookie={ctyCookie(sel.slug)} list={cur.D.countries.all} selected={cur.D.countries.selected} />}
+          {cur.D && cur.D.countries && cur.D.countries.all.length > 1 && <CountryPicker key={ctyRaw} cookie={ctyCookie(sel.slug)} list={cur.D.countries.all} selected={cur.D.countries.selected} label={sel.countries && sel.countries.label} />}
           {!ctx.rop && accs.length > 1 && <AccountPicker slug={sel.slug} cookie={accCookie(sel.slug)} list={accs} selected={cur.D && cur.D.diag && cur.D.diag.akkauntlar ? cur.D.diag.akkauntlar : accs.map((a) => a.id)} />}
           {sel.crm !== "bitrix" && <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />}
           <DatePicker range={range} sel={sel} by={by} sm={sm} />
           {!ctx.rop && <PlanForm f={planForm} sel={sel} by={by} range={range} />}
+          {!ctx.rop && <ThresholdForm t={selT} saved={!!thr} sel={sel} by={by} range={range} ready={storeReady()} />}
         </div>
       </div>
 
       {range.note && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>{range.note}</div>}
       {planForm.saved === planForm.ym && planForm.n && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Saqlandi: {planForm.label} uchun oylik reja {planForm.n} {planForm.unit}.</div>}
+      {sp.tsaved === "1" && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#E4F5EA", color: "#05603A", fontSize: 13, fontWeight: 600 }}>Chegaralar saqlandi. Panel, ogohlantirishlar va Telegram hisobotlari yangi chegaralar bo'yicha hisoblanadi.</div>}
+      {sp.terr && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, fontWeight: 600 }}>{sp.terr === "input" ? "Chegaralar saqlanmadi: qiymatlarni tekshiring (foizlar 1–100, javob vaqti 1–1440 daqiqa)." : sp.terr === "nostore" ? "Chegaralar saqlanmadi: saqlash joyi ulanmagan." : "Chegaralar saqlanmadi: saqlash joyi javob bermadi."}</div>}
       {planForm.err && ERR[planForm.err] && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, fontWeight: 600 }}>{ERR[planForm.err]}</div>}
       {planForm.storeError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Saqlangan rejalar o'qilmadi ({planForm.storeError}). Hozircha standart reja ko'rsatilmoqda.</div>}
 
@@ -230,6 +236,43 @@ function SaleMode({ sel, rq, by, sm }) {
 }
 
 // Oylik lid rejasi: tanlangan davr oyi uchun kiritiladi, har oy alohida saqlanadi va kunlarga avtomatik bo'linadi
+// Ogohlantirish chegaralari: loyiha bo'yicha paneldan o'zgartiriladi (sarf valyutasida)
+function ThresholdForm({ t, saved, sel, by, range, ready }) {
+  const lab = { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 700, color: "#566573" };
+  const cur = sel.currency === "USD" ? "$" : "so'm";
+  const pc = (x) => (x == null ? "" : Math.round(x * 100));
+  return (
+    <details className="pop">
+      <summary className="popbtn">
+        <span style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#566573" }}>Chegaralar{saved ? "" : " · standart"}</span>
+          <span style={{ fontWeight: 700 }}>CPL {t.cpl}{cur === "$" ? "$" : " so'm"} · sifatli {t.qcpl}{cur === "$" ? "$" : " so'm"}</span>
+        </span>
+        <span aria-hidden="true" style={{ color: "#566573" }}>▾</span>
+      </summary>
+      <div className="poppanel">
+        <div>
+          <div style={{ fontWeight: 700 }}>{sel.short}: ogohlantirish chegaralari</div>
+          <div className="muted">Ko'rsatkich chegaradan oshsa (yoki past tushsa) panelda qizaradi, ogohlantirishlarga va Telegram hisobotiga tushadi. Narxlar reklama sarfi valyutasida ({cur}).</div>
+        </div>
+        {!ready && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FFF8E6", color: "#7A3F06", fontSize: 13 }}>Forma ishlamaydi: saqlash joyi ulanmagan.</div>}
+        <form action={saveThresholds} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input type="hidden" name="slug" value={sel.slug} />
+          <input type="hidden" name="by" value={by} />
+          <input type="hidden" name="rq" value={range.query} />
+          <label style={lab}>Meta CPL, {cur} (oshmasin)<input className="field" name="cpl" type="number" step="any" min="0.01" required defaultValue={t.cpl} disabled={!ready} /></label>
+          <label style={lab}>Sifatli lid narxi, {cur} (oshmasin)<input className="field" name="qcpl" type="number" step="any" min="0.01" required defaultValue={t.qcpl} disabled={!ready} /></label>
+          <label style={lab}>Sifatli lid ulushi, % (past tushmasin)<input className="field" name="quality" type="number" step="1" min="1" max="100" required defaultValue={pc(t.quality)} disabled={!ready} /></label>
+          <label style={lab}>Nedozvon, % (oshmasin)<input className="field" name="noAns" type="number" step="1" min="1" max="100" required defaultValue={pc(t.noAns)} disabled={!ready} /></label>
+          <label style={lab}>Birinchi javob, daqiqa (oshmasin)<input className="field" name="reply" type="number" step="1" min="1" max="1440" required defaultValue={t.reply} disabled={!ready} /></label>
+          <label style={lab}>ROAS, x (bo'sh = chegara yo'q)<input className="field" name="roas" type="number" step="any" min="0.1" defaultValue={t.roas == null ? "" : t.roas} disabled={!ready} /></label>
+          <button type="submit" className="btn" disabled={!ready}>Chegaralarni saqlash</button>
+        </form>
+      </div>
+    </details>
+  );
+}
+
 function PlanForm({ f, sel, by, range }) {
   const lab = { display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 700, color: "#566573" };
   return (
