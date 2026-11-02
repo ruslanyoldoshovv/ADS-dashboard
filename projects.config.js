@@ -215,12 +215,14 @@ module.exports = {
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
     {
-      // Bo'sh loyiha: ulash uchun Vercel'da META_TOKEN_P6, META_ACCOUNT_P6 va CRM (AMO_SUBDOMAIN_P6 + AMO_TOKEN_P6 yoki BITRIX_WEBHOOK_P6) kiritiladi
+      // Global Study (chet elda o'qish konsalting). CRM hali ulanmagan: "Faqat Meta" rejimida ishlaydi.
+      // Vercel: META_ACCOUNT_P6. Meta tokeni Nexus'niki (META_TOKEN_P1). CRM ulansa AMO_SUBDOMAIN_P6 + AMO_TOKEN_P6 kiritiladi.
       slug: "loyiha-6",
-      short: "Loyiha 6",
-      niche: "bo'sh",
-      name: "Loyiha 6 · bo'sh",
+      short: "Global Study",
+      niche: "Chet elda o'qish · konsalting",
+      name: "Global Study · Chet elda o'qish",
       env: "P6",
+      metaTokenFrom: "P1",
       currency: "USD",
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
