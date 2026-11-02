@@ -85,12 +85,16 @@ export default function Chart({ slug, apiBase, filterKey }) {
   const fadeFrom = rows.findIndex((r) => r.fade);
 
   // Y o'qi faqat yoqilgan chiziqlarga moslashadi
+  // "Faqat Meta" rejimi: CRM'ga bog'liq chiziqlar (sifatli, keldi, sotuv) ko'rsatilmaydi
+  const MO = !!(data && data.metaOnly);
+  const tops = MO ? TOP.filter((s) => !s.fade) : TOP;
+  const bots = MO ? BOT.filter((s) => !s.fade) : BOT;
   const maxOf = (keys) => Math.max(0, ...rows.flatMap((r) => keys.map((kk) => (r[kk] == null ? 0 : r[kk]))));
   const T = (data && data.thresholds) || {};
   const leftMax = niceMax(maxOf(onTop.spend ? ["spend"] : []));
-  const rightKeys = TOP.filter((s) => s.axis === "R" && onTop[s.k]).map((s) => s.k);
-  const rightMax = niceMax(Math.max(maxOf(rightKeys), ...TOP.filter((s) => s.th && onTop[s.k]).map((s) => (T[s.th] || 0) * 1.15)));
-  const botKeys = BOT.filter((s) => onBot[s.k]).map((s) => s.k);
+  const rightKeys = tops.filter((s) => s.axis === "R" && onTop[s.k]).map((s) => s.k);
+  const rightMax = niceMax(Math.max(maxOf(rightKeys), ...tops.filter((s) => s.th && onTop[s.k]).map((s) => (T[s.th] || 0) * 1.15)));
+  const botKeys = bots.filter((s) => onBot[s.k]).map((s) => s.k);
   const botMax = niceMax(maxOf(botKeys));
 
   const yOf = (v, max, H) => top + (H - top - bottom) * (1 - v / max);
@@ -159,7 +163,7 @@ export default function Chart({ slug, apiBase, filterKey }) {
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
         <div>
           <h2 className="h2">Dinamika</h2>
-          <div className="muted">{data && data.ok ? (data.label + " · sarf " + money(totals.spend) + " · lid " + fmtN(totals.leads) + " · sifatli " + fmtN(totals.good)) : "Kunlik sarf va lidlar"}</div>
+          <div className="muted">{data && data.ok ? (data.label + " · sarf " + money(totals.spend) + " · lid " + fmtN(totals.leads) + (MO ? "" : " · sifatli " + fmtN(totals.good))) : "Kunlik sarf va lidlar"}</div>
         </div>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 700, color: "#566573" }}>Davr
           <select className="field" style={{ minWidth: 200 }} value={k} onChange={(e) => { setK(e.target.value); setHover(null); }}>
@@ -173,37 +177,37 @@ export default function Chart({ slug, apiBase, filterKey }) {
       <div ref={box} style={{ position: "relative", opacity: loading ? 0.45 : 1, transition: "opacity .2s" }}>
         {err && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#FDECEA", color: "#A12116", fontSize: 13, marginBottom: 8 }}>Grafik yuklanmadi: {err}</div>}
         {/* Tepa: pul */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>{TOP.map((s) => <Toggle key={s.k} s={s} on={onTop} set={setOnTop} />)}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>{tops.map((s) => <Toggle key={s.k} s={s} on={onTop} set={setOnTop} />)}</div>
         <svg width={W} height={H1} onPointerMove={onMove} onPointerLeave={() => setHover(null)} style={{ display: "block", touchAction: "pan-y" }} role="img" aria-label="Kunlik sarf grafigi">
           {fadeBand(H1)}
           {onTop.spend ? <Grid max={leftMax} H={H1} fmt={moneyAxis} side="L" /> : ticks(1).map((t, j) => <line key={j} x1={padL} x2={W - padR} y1={yOf(t, 1, H1)} y2={yOf(t, 1, H1)} stroke="#E9EEF2" />)}
           {rightKeys.length > 0 && <Grid max={rightMax} H={H1} fmt={moneyAxis} side="R" />}
-          {TOP.filter((s) => s.th && onTop[s.k] && T[s.th]).map((s) => (
+          {tops.filter((s) => s.th && onTop[s.k] && T[s.th]).map((s) => (
             <g key={"th" + s.k}>
               <line x1={padL} x2={W - padR} y1={yOf(T[s.th], rightMax, H1)} y2={yOf(T[s.th], rightMax, H1)} stroke={s.color} strokeDasharray="3 4" strokeOpacity="0.8" />
               <text x={W - padR - 4} y={yOf(T[s.th], rightMax, H1) - 4} fontSize="10" fill={s.color} textAnchor="end">chegara {money(T[s.th])}</text>
             </g>
           ))}
-          {TOP.filter((s) => onTop[s.k]).map((s) => <g key={s.k}>{lines(s, s.axis === "L" ? leftMax : rightMax, H1)}</g>)}
+          {tops.filter((s) => onTop[s.k]).map((s) => <g key={s.k}>{lines(s, s.axis === "L" ? leftMax : rightMax, H1)}</g>)}
           {hoverLine(H1)}
-          {dots(TOP, onTop, (s) => (s.axis === "L" ? leftMax : rightMax), H1)}
+          {dots(tops, onTop, (s) => (s.axis === "L" ? leftMax : rightMax), H1)}
         </svg>
         {/* Past: lidlar */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0 4px" }}>{BOT.map((s) => <Toggle key={s.k} s={s} on={onBot} set={setOnBot} />)}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0 4px" }}>{bots.map((s) => <Toggle key={s.k} s={s} on={onBot} set={setOnBot} />)}</div>
         <svg width={W} height={H2} onPointerMove={onMove} onPointerLeave={() => setHover(null)} style={{ display: "block", touchAction: "pan-y" }} role="img" aria-label="Kunlik lidlar grafigi">
           {fadeBand(H2)}
           <Grid max={botMax} H={H2} fmt={(t) => fmtN(t)} side="L" />
-          {BOT.filter((s) => onBot[s.k]).map((s) => <g key={s.k}>{lines(s, botMax, H2)}</g>)}
+          {bots.filter((s) => onBot[s.k]).map((s) => <g key={s.k}>{lines(s, botMax, H2)}</g>)}
           {hoverLine(H2)}
-          {dots(BOT, onBot, () => botMax, H2)}
+          {dots(bots, onBot, () => botMax, H2)}
           {rows.map((r) => (r.i % step === 0 ? <text key={r.d} x={X(r.i)} y={H2 - 8} fontSize="11" fill={r.has ? "#566573" : "#B5C0CA"} textAnchor="middle">{xLabel(r)}</text> : null))}
         </svg>
         {hv && (
           <div className="ctip" style={{ left: Math.min(Math.max(X(hv.i) + 12, 0), W - 200) }}>
             <div style={{ fontWeight: 800, marginBottom: 4 }}>{dmy(hv.d)}{hv.fade ? " · ishlanmoqda" : ""}</div>
             {!hv.has && <div className="muted">Hali kelmagan kun · reja {hv.plan}</div>}
-            {hv.has && TOP.filter((s) => onTop[s.k]).map((s) => <Row key={s.k} c={s.color} l={s.label} v={money(hv[s.k])} />)}
-            {hv.has && BOT.filter((s) => onBot[s.k]).map((s) => <Row key={s.k} c={s.color} l={s.label} v={hv[s.k] == null ? "—" : fmtN(hv[s.k])} />)}
+            {hv.has && tops.filter((s) => onTop[s.k]).map((s) => <Row key={s.k} c={s.color} l={s.label} v={money(hv[s.k])} />)}
+            {hv.has && bots.filter((s) => onBot[s.k]).map((s) => <Row key={s.k} c={s.color} l={s.label} v={hv[s.k] == null ? "—" : fmtN(hv[s.k])} />)}
             {hv.has && hv.prog > 0 && <div className="muted" style={{ marginTop: 4 }}>⏳ {hv.prog} ta lid hali jarayonda</div>}
           </div>
         )}

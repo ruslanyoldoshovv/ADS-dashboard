@@ -55,8 +55,10 @@ function normalize(layout, keys) {
   return { order, hidden };
 }
 
-export default function ResultsTable({ rows, nameHeader, headers, slug, layout, canSave }) {
-  const COLS = useMemo(() => columns(headers), [headers]);
+// only: faqat shu ustunlar (masalan "Faqat Meta" rejimida: sarf, Meta lid, Meta CPL)
+export default function ResultsTable({ rows, nameHeader, headers, slug, layout, canSave, only }) {
+  const onlyKey = only ? only.join(",") : "";
+  const COLS = useMemo(() => { const all = columns(headers); return onlyKey ? all.filter((c) => onlyKey.split(",").includes(c.k)) : all; }, [headers, onlyKey]);
   const keys = COLS.map((c) => c.k);
   const [lay, setLay] = useState(() => normalize(layout, keys));
   const [sort, setSort] = useState(null); // { k, dir: -1 kamayish | 1 o'sish }

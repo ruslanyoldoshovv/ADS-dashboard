@@ -136,7 +136,7 @@ export default async function Panel({ searchParams, mode }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <h1 style={{ fontSize: 28, lineHeight: 1.2, fontWeight: 800, letterSpacing: "-0.01em" }}>{sel.name}</h1>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-            <span className="muted" style={{ fontSize: 14 }}>Meta Ads + {sel.crm === "bitrix" ? "Bitrix24" : "amoCRM"} · {range.label}</span>
+            <span className="muted" style={{ fontSize: 14 }}>{cur.D && cur.D.metaOnly ? "Meta Ads · CRM ulanmagan (faqat Meta)" : "Meta Ads + " + (sel.crm === "bitrix" ? "Bitrix24" : "amoCRM")} · {range.label}</span>
             {cur.D && (
               <span className="pill" style={{ background: cur.D.mode === "demo" ? "#E8EEF9" : "#E4F5EA", color: cur.D.mode === "demo" ? "#1D4ED8" : "#05603A" }}>
                 {cur.D.mode === "demo" ? "Namuna ma'lumotlar" : "Jonli ma'lumot" + (cur.D.loadedAt ? " · " + agoText(cur.D.loadedAt) : "")}
@@ -148,7 +148,7 @@ export default async function Panel({ searchParams, mode }) {
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 12 }}>
           {cur.D && cur.D.countries && cur.D.countries.all.length > 1 && <CountryPicker key={ctyRaw} cookie={ctyCookie(sel.slug)} list={cur.D.countries.all} selected={cur.D.countries.selected} label={sel.countries && sel.countries.label} />}
           {!ctx.rop && accs.length > 1 && <AccountPicker slug={sel.slug} cookie={accCookie(sel.slug)} list={accs} selected={cur.D && cur.D.diag && cur.D.diag.akkauntlar ? cur.D.diag.akkauntlar : accs.map((a) => a.id)} />}
-          {sel.crm !== "bitrix" && <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />}
+          {sel.crm !== "bitrix" && !(cur.D && cur.D.metaOnly) && <SaleMode sel={sel} rq={range.query} by={by} sm={sm} />}
           <DatePicker range={range} sel={sel} by={by} sm={sm} />
           {!ctx.rop && <PlanForm f={planForm} sel={sel} by={by} range={range} />}
           {!ctx.rop && <ThresholdForm t={selT} saved={!!thr} sel={sel} by={by} range={range} ready={storeReady()} />}
@@ -446,8 +446,8 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
         </div>
       </div>
 
-      {/* Voronka + manba */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
+      {/* Voronka + manba (CRM ulanmagan loyihada ko'rsatilmaydi) */}
+      {!v.metaOnly && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
         <div className="card">
           <div><h2 className="h2">Sotuv voronkasi (amoCRM bosqichlari)</h2><div className="muted">Foiz: oldingi bosqichdan o'tgan lidlar ulushi</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -485,15 +485,15 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
           </div>
           <div className="muted">Ogohlantirish: reklama ta'sirida qo'ng'iroq qilgan, lekin teg olmagan mijozlar "Kiruvchi qo'ng'iroq"da turadi. Shu sabab reklamaning haqiqiy natijasi jadvaldagidan biroz yuqori bo'lishi mumkin.</div>
         </div>
-      </div>
+      </div>}
 
       {/* Jadval: reklamalar bo'yicha (ROP rejimida ko'rsatilmaydi) */}
       {!reqCtx().rop && <div className="tblcard">
         <div style={{ padding: "20px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <h2 className="h2">{v.tableTitle}</h2>
-            <div className="muted">Qizil raqam: chegaradan oshgan yoki past ko'rsatkich. Sifatli lid = "Ma'lumot berildi" va undan keyingi bosqichga o'tgan lid</div>
-            <div className="muted" style={{ color: v.saleMode === "pay" ? "#5B21B6" : undefined }}>{v.saleModeNote}</div>
+            <div className="muted">{v.metaOnly ? "Qizil raqam: Meta CPL chegaradan oshgan. Lid = Meta lid formasidagi lidlar." : "Qizil raqam: chegaradan oshgan yoki past ko'rsatkich. Sifatli lid = \"Ma'lumot berildi\" va undan keyingi bosqichga o'tgan lid"}</div>
+            {!v.metaOnly && <div className="muted" style={{ color: v.saleMode === "pay" ? "#5B21B6" : undefined }}>{v.saleModeNote}</div>}
           </div>
           <div className="seg soft" role="group" aria-label="Guruhlash">
             {[["ad", "Kreativ"], ["campaign", "Kampaniya"], ["adset", "Ad set"]].map(([k, l]) => (
@@ -501,12 +501,12 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
             ))}
           </div>
         </div>
-        <ResultsTable rows={v.rows} nameHeader={v.nameHeader} headers={{ spend: v.spendHeader, revenue: v.revenueHeader || "Daromad, so'm" }} slug={sel.slug} layout={cols} canSave={storeReady()} />
+        <ResultsTable rows={v.rows} nameHeader={v.nameHeader} headers={{ spend: v.spendHeader, revenue: v.revenueHeader || "Daromad, so'm" }} slug={sel.slug} layout={cols} canSave={storeReady()} only={v.metaOnly ? ["spend", "metaLeads", "metaCpl"] : null} />
         {v.hidden.show && <HiddenSales h={v.hidden} />}
       </div>}
 
-      {/* Sabablar + operatorlar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
+      {/* Sabablar + operatorlar (CRM ulanmagan loyihada ko'rsatilmaydi) */}
+      {!v.metaOnly && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(420px, 100%), 1fr))", gap: 16 }}>
         <div className="card">
           <div><h2 className="h2">LOST sabablari</h2><div className="muted">{v.reasonsSub}</div></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -536,7 +536,7 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
           <div style={{ padding: "12px 16px", borderRadius: 12, background: "#F3F5F7", fontSize: 14, color: "#2B3A46" }}>{v.opNote}</div>
           <ScheduleEditor slug={sel.slug} apiBase={reqCtx().rop ? "/rop/api" : "/api"} operators={v.schedUsers || v.operators.filter((o) => o.uid).map((o) => ({ uid: o.uid, name: o.name }))} />
         </div>}
-      </div>
+      </div>}
 
       {/* Qoidalar */}
       <div className="card">
