@@ -61,7 +61,7 @@ export async function GET(req) {
     return Response.json({
       ok: true, k: sel.k, label: sel.label, periods: list.map(({ k, label }) => ({ k, label })),
       currency: p.currency, planBy: p.planBy || "leads", thresholds: { cpl: p.thresholds.cpl, qcpl: p.thresholds.qcpl },
-      today: todayStr, demo: !!data.demo, historyUsed: data.historyUsed !== false, days
+      today: todayStr, demo: !!data.demo, metaOnly: !!data.metaOnly, historyUsed: data.historyUsed !== false, days
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return Response.json({ ok: false, error: String(e.message || e), periods: list.map(({ k, label }) => ({ k, label })), k: sel.k }, { status: 200 });
