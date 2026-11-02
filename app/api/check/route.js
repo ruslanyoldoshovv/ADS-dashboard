@@ -55,7 +55,8 @@ export async function GET(req) {
     } else out.amocrm = { ok: false, sabab: "Subdomen yoki token kiritilmagan" };
   } catch (err) { out.amocrm = { ok: false, sabab: String(err.message) }; }
   // Oxirgi kunlardagi lidlar bo'yicha namuna: reklama nomi qayerda turibdi va Meta bilan mos kelyaptimi
-  if (out.amocrm.ok) {
+  if (c.metaOnly) out.rejim = "Faqat Meta: CRM kalitlari kiritilmagan, panel faqat Meta ma'lumotini ko'rsatadi";
+  if (out.amocrm.ok || c.metaOnly) {
     try {
       // Davr: ?r=month (standart), ?r=30d, yoki ?from=2026-09-01&to=2026-09-30
       const q = new URL(req.url).searchParams;
