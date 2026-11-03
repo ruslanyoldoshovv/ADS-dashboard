@@ -224,6 +224,10 @@ module.exports = {
       env: "P6",
       metaTokenFrom: "P1",
       currency: "USD",
+      // Davlatlar: Meta kampaniya nomining birinchi so'zi (ITALY, KIPR...). Ishga olish (vakansiya) kampaniyalari alohida guruh.
+      countries: { label: "Davlatlar", aliases: { SALES: "VAKANSIYA", VAKANSIYA: "VAKANSIYA", VACANCY: "VAKANSIYA", HR: "VAKANSIYA" } },
+      // Guruhga kunlik hisobot: har bir davlat va vakansiya alohida blok, oxirida jami
+      groupReport: "countries",
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
