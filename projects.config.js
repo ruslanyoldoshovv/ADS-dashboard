@@ -198,6 +198,11 @@ module.exports = {
       // Davlat filtri: amoCRM tegi "<DAVLAT>_LEADS" (masalan ITALIYA_LEADS), Meta'da kampaniya nomining birinchi so'zi (ITALIYA 2 - ...).
       // Yangi davlat tegi va kampaniyasi qo'shilsa, panelda avtomatik paydo bo'ladi.
       countries: { tagSuffix: "_LEADS" },
+      // Guruhga kunlik hisobot: har bir davlat alohida blok (bayroq bilan), oxirida jami
+      groupReport: "countries",
+      // Sertifikatsizlar: Meta formada "non-lead" sahifasidagi Google Form orqali faqat amoCRM'ga tushadi (teg SERTIFIKATSIZLAR).
+      // Hisobotda shu davlat lidlariga qo'shiladi: Lid = sertifikatli (Meta) + sertifikatsiz (CRM)
+      extraLeads: { tag: "SERTIFIKATSIZLAR", label: "sertifikatsiz", mainLabel: "sertifikatli" },
       thresholds: { cpl: 5, qcpl: 10, quality: 0.4, qualityWarn: 0.5, pace: 0.8, minLeads: 20, reply: 60, roas: null, noAns: 0.3 },
       plan: { weekday: 0, sunday: 0, overrides: {} }
     },
