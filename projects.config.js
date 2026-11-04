@@ -200,6 +200,8 @@ module.exports = {
       countries: { tagSuffix: "_LEADS" },
       // Guruhga kunlik hisobot: har bir davlat alohida blok (bayroq bilan), oxirida jami
       groupReport: "countries",
+      // Qo'ng'iroq targeti bor: grafikda kunlik qo'ng'iroqlar va CPL qo'ng'iroq sarfisiz
+      calls: true,
       // Sertifikatsizlar: Meta formada "non-lead" sahifasidagi Google Form orqali faqat amoCRM'ga tushadi (teg SERTIFIKATSIZLAR).
       // Hisobotda shu davlat lidlariga qo'shiladi: Lid = sertifikatli (Meta) + sertifikatsiz (CRM)
       extraLeads: { tag: "SERTIFIKATSIZLAR", label: "sertifikatsiz", mainLabel: "sertifikatli" },
