@@ -501,7 +501,7 @@ function Body({ v, sel, rq, by, sm, cols, filterKey }) {
             ))}
           </div>
         </div>
-        <ResultsTable rows={v.rows} nameHeader={v.nameHeader} headers={{ spend: v.spendHeader, revenue: v.revenueHeader || "Daromad, so'm" }} slug={sel.slug} layout={cols} canSave={storeReady()} only={v.metaOnly ? ["spend", "metaLeads", "metaCpl"] : null} />
+        <ResultsTable rows={v.rows} nameHeader={v.nameHeader} headers={{ spend: v.spendHeader, revenue: v.revenueHeader || "Daromad, so'm" }} slug={sel.slug} layout={cols} canSave={storeReady()} only={v.metaOnly ? ["spend", "metaLeads", "metaCpl"] : null} hide={v.hasCalls ? null : ["calls", "callCpl"]} />
         {v.hidden.show && <HiddenSales h={v.hidden} />}
       </div>}
 

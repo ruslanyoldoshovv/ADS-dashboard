@@ -34,6 +34,8 @@ function columns(h) {
     { k: "revenue", label: h.revenue, w: 92, r: true, cell: (r) => <div className="r">{r.revenue}</div> },
     { k: "roas", label: "ROAS", w: 48, r: true, cell: (r) => <div className="r" style={{ fontWeight: 800, color: r.roasColor }}>{r.roas}</div> },
     { k: "metaCpl", label: "Meta CPL", w: 60, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700, color: r.cplColor }}>{r.metaCpl}</div> },
+    { k: "calls", label: "Qo'ng'iroq", w: 62, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700 }}>{r.calls}</div> },
+    { k: "callCpl", label: "Qo'ng'iroq narxi", w: 66, r: true, cell: (r) => <div className="r" style={{ fontWeight: 700, color: r.callColor }}>{r.callCpl}</div> },
     { k: "qCpl", label: "Sifatli lid narxi", w: 66, r: true, cell: (r) => <div className="r" style={{ fontWeight: 800, color: r.qcplColor }}>{r.qCpl}</div> },
     { k: "saleCpl", label: "Sotuv narxi", w: 66, r: true, cell: (r) => <div className="r" style={{ fontWeight: 800 }}>{r.saleCpl}</div> },
     { k: "dup", label: "Dubl", w: 50, r: true, cell: (r) => <Two a={r.dup} b={r.dupPct} c={r.dupColor} bold /> },
@@ -56,9 +58,10 @@ function normalize(layout, keys) {
 }
 
 // only: faqat shu ustunlar (masalan "Faqat Meta" rejimida: sarf, Meta lid, Meta CPL)
-export default function ResultsTable({ rows, nameHeader, headers, slug, layout, canSave, only }) {
-  const onlyKey = only ? only.join(",") : "";
-  const COLS = useMemo(() => { const all = columns(headers); return onlyKey ? all.filter((c) => onlyKey.split(",").includes(c.k)) : all; }, [headers, onlyKey]);
+// hide: shu ustunlar umuman ko'rsatilmaydi (masalan qo'ng'iroq targeti bo'lmasa "Qo'ng'iroq" ustunlari)
+export default function ResultsTable({ rows, nameHeader, headers, slug, layout, canSave, only, hide }) {
+  const onlyKey = only ? only.join(",") : "", hideKey = hide ? hide.join(",") : "";
+  const COLS = useMemo(() => { let all = columns(headers); if (onlyKey) all = all.filter((c) => onlyKey.split(",").includes(c.k)); if (hideKey) all = all.filter((c) => !hideKey.split(",").includes(c.k)); return all; }, [headers, onlyKey, hideKey]);
   const keys = COLS.map((c) => c.k);
   const [lay, setLay] = useState(() => normalize(layout, keys));
   const [sort, setSort] = useState(null); // { k, dir: -1 kamayish | 1 o'sish }

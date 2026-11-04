@@ -17,7 +17,8 @@ const BOT = [
   { k: "good", label: "Sifatli lid", color: "#059669", on: true, fade: true },
   { k: "visits", label: "Suhbatga keldi", color: "#D97706", on: false, fade: true },
   { k: "sales", label: "Sotuv", color: "#DC2626", on: false, fade: true },
-  { k: "plan", label: "Reja (sifatli lid)", color: "#14212B", on: false, dash: "6 5" }
+  { k: "plan", label: "Reja (sifatli lid)", color: "#14212B", on: false, dash: "6 5" },
+  { k: "calls", label: "Qo'ng'iroqlar", color: "#0891B2", on: false, callOnly: true }
 ];
 
 const fmtN = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -70,7 +71,9 @@ export default function Chart({ slug, apiBase, filterKey }) {
       return {
         d: x.d, i, has, fade: has && i > last - FADE_DAYS,
         spend: has ? x.spend || 0 : null,
-        cpl: has && x.adLeads > 0 ? x.spend / x.adLeads : null,
+        // CPL: qo'ng'iroq targeti sarfisiz (faqat lid forma sarfi)
+        cpl: has && x.adLeads > 0 ? Math.max((x.spend || 0) - (x.callSpend || 0), 0) / x.adLeads : null,
+        calls: has ? x.calls || 0 : null,
         qcpl: has && x.good > 0 ? x.spend / x.good : null,
         leads: has ? x.leads : null, good: has ? x.good : null, visits: has ? x.visits : null, sales: has ? x.sales : null,
         plan: x.plan || 0, adLeads: has ? x.adLeads : null, prog: has ? x.prog : null
@@ -88,7 +91,8 @@ export default function Chart({ slug, apiBase, filterKey }) {
   // "Faqat Meta" rejimi: CRM'ga bog'liq chiziqlar (sifatli, keldi, sotuv) ko'rsatilmaydi
   const MO = !!(data && data.metaOnly);
   const tops = MO ? TOP.filter((s) => !s.fade) : TOP;
-  const bots = MO ? BOT.filter((s) => !s.fade) : BOT;
+  const HC = !!(data && data.days && data.days.some((x) => x.calls > 0)); // qo'ng'iroq targeti bo'lgan davr
+  const bots = (MO ? BOT.filter((s) => !s.fade) : BOT).filter((s) => !s.callOnly || HC);
   const maxOf = (keys) => Math.max(0, ...rows.flatMap((r) => keys.map((kk) => (r[kk] == null ? 0 : r[kk]))));
   const T = (data && data.thresholds) || {};
   const leftMax = niceMax(maxOf(onTop.spend ? ["spend"] : []));
