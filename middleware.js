@@ -15,6 +15,8 @@ export function middleware(req) {
   if (path === "/api/amo-webhook") return NextResponse.next();
   // Telegram bot: o'z maxfiy kaliti bilan himoyalangan (lib/telegram.js tekshiradi)
   if (path === "/api/tg/webhook") return NextResponse.next();
+  // Google Sheets eksporti: Google hisobi tokeni bilan himoyalangan (app/api/export/route.js tekshiradi)
+  if (path === "/api/export") return NextResponse.next();
   if (path === "/api/tg/cron" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
   if (path === "/api/capi/sync" && (req.headers.get("user-agent") || "").startsWith("vercel-cron")) return NextResponse.next();
   // Sotuv bo'limi rahbarlari (ROP): faqat /rop bo'limiga kiradi, har biri o'z loyihasini ko'radi (lib/rop.js:
