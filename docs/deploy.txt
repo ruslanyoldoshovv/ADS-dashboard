@@ -1,1 +1,1 @@
-Deploy trigger: Halila META_ACCOUNT_P3 4 ta akkount (2026-11-03)
+Deploy trigger: Halila META_TOKEN_P3 yangilandi (2026-11-15)
