@@ -137,6 +137,8 @@ module.exports = {
       metaTokenFrom: "P1",
       currency: "USD",
       hideOperators: true, // sotuvchilar bo'limi ko'rsatilmaydi
+      // Akkaunt shu sanadan boshlab hisoblanadi (oldin boshqa loyihada ishlatilgan): undan oldingi sarf va lidlar olinmaydi
+      metaAccountStart: { "3569675563211476": "2026-11-17" },
       // Bitrix24 sozlamasi: lid = "CALL-ЦЕНТР" voronkasidagi (ID 0) sdelka
       bitrix: {
         categories: [0],
